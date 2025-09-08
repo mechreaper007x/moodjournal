@@ -13,33 +13,33 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.moodjournal.dto.UpdateJournalEntryRequest;
 import com.example.moodjournal.model.JournalEntry;
 import com.example.moodjournal.service.JournalEntryService;
 
 @RestController
-@RequestMapping("/api/entries")
+@RequestMapping("/journal")
 public class JournalEntryController {
     private final JournalEntryService service;
     public JournalEntryController(JournalEntryService service) { this.service = service; }
 
     @PostMapping
     public ResponseEntity<JournalEntry> create(@RequestParam Long userId, @RequestBody JournalEntry entry){
+        // In a real application, you would get the user from the security context
+        // For example: User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         JournalEntry created = service.create(userId, entry);
         return ResponseEntity.ok(created);
     }
 
     @GetMapping("/me")
     public ResponseEntity<List<JournalEntry>> myEntries(@RequestParam Long userId){
+        // In a real application, you would get the user from the security context
         return ResponseEntity.ok(service.getByUser(userId));
     }
 
     @GetMapping("/community")
     public ResponseEntity<List<JournalEntry>> community(@RequestParam(required = false) String mood){
-        if(mood == null) return ResponseEntity.ok(service.getPublicEntries());
-        return ResponseEntity.ok(service.getPublicEntries()
-              .stream()
-              .filter(e -> e.getMood()!=null && e.getMood().name().equalsIgnoreCase(mood))
-              .toList());
+        return ResponseEntity.ok(service.getPublicEntries(mood));
     }
 
     @GetMapping("/{id}")
@@ -49,9 +49,11 @@ public class JournalEntryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<JournalEntry> update(@PathVariable Long id, @RequestBody JournalEntry updated){
+    public ResponseEntity<JournalEntry> update(@PathVariable Long id, @RequestBody UpdateJournalEntryRequest updated){
         return ResponseEntity.ok(service.update(id, updated));
     }
+
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id){

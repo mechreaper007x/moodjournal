@@ -5,7 +5,9 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.example.moodjournal.dto.UpdateJournalEntryRequest;
 import com.example.moodjournal.model.JournalEntry;
+import com.example.moodjournal.model.Mood;
 import com.example.moodjournal.model.Visibility;
 import com.example.moodjournal.repository.JournalEntryRepository;
 import com.example.moodjournal.repository.UserRepository;
@@ -29,7 +31,16 @@ public class JournalEntryService {
         return entryRepo.findByUserId(userId);
     }
 
-    public List<JournalEntry> getPublicEntries() {
+    public List<JournalEntry> getPublicEntries(String mood) {
+        if (mood != null && !mood.isEmpty()) {
+            try {
+                Mood moodEnum = Mood.valueOf(mood.toUpperCase());
+                return entryRepo.findByMoodAndVisibility(moodEnum, Visibility.PUBLIC_ANON);
+            } catch (IllegalArgumentException e) {
+                // Handle invalid mood string
+                return List.of();
+            }
+        }
         return entryRepo.findByVisibility(Visibility.PUBLIC_ANON);
     }
 
@@ -37,7 +48,7 @@ public class JournalEntryService {
         return entryRepo.findById(id);
     }
 
-    public JournalEntry update(Long id, JournalEntry updated) {
+    public JournalEntry update(Long id, UpdateJournalEntryRequest updated) {
         return entryRepo.findById(id).map(e -> {
             e.setTitle(updated.getTitle());
             e.setContent(updated.getContent());
