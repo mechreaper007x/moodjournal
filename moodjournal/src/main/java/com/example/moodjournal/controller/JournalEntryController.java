@@ -31,6 +31,11 @@ public class JournalEntryController {
         return ResponseEntity.ok(created);
     }
 
+    @PostMapping("/journal")
+    public JournalEntry createEntry(@RequestBody JournalEntry entry) {
+        return service.create(entry.getUser().getId(), entry);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<List<JournalEntry>> myEntries(@RequestParam Long userId){
         // In a real application, you would get the user from the security context

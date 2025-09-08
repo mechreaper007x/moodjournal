@@ -56,3 +56,16 @@ public class JournalEntry {
         updatedAt = LocalDateTime.now();
     }
 }
+
+// Sample JSON to create a new JournalEntry
+/*
+{
+  "title": "Day One",
+  "content": "Here's my mood today—fired up!",
+  "mood": "HAPPY",
+  "visibility": "PUBLIC_ANON",
+  "user": {
+    "id": 1
+  }
+}
+*/
