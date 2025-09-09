@@ -21,8 +21,5 @@ public class HomeController {
     }
 
     // This method handles the request to "/journal"
-    @GetMapping("/journal")
-    public String journal() {
-        return "Welcome to your Journal!";
-    }
+    // removed /journal to avoid conflicting with REST controller
 }
