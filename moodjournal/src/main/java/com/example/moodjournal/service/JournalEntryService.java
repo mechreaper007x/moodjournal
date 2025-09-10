@@ -17,23 +17,31 @@ import com.example.moodjournal.repository.UserRepository;
 public class JournalEntryService {
     private final JournalEntryRepository entryRepo;
     private final UserRepository userRepo;
+    private final SentimentAnalysisService sentimentService; // Add this
 
-    public JournalEntryService(JournalEntryRepository entryRepo, UserRepository userRepo) {
+    public JournalEntryService(JournalEntryRepository entryRepo, UserRepository userRepo, 
+                              SentimentAnalysisService sentimentService) { // Add parameter
         this.entryRepo = entryRepo;
         this.userRepo = userRepo;
+        this.sentimentService = sentimentService; // Initialize
     }
 
     public JournalEntry create(Long userId, JournalEntry entry) {
         userRepo.findById(userId).ifPresent(entry::setUser);
+        
+        // Auto-detect mood if not provided
+        if (entry.getMood() == null) {
+            Mood detectedMood = sentimentService.analyzeSentiment(entry.getContent());
+            entry.setMood(detectedMood);
+        }
+        
         return entryRepo.save(entry);
     }
 
-    // Overloaded create method that accepts only the JournalEntry.
-    // If the entry contains a user with an id, we set it; otherwise save as-is.
+    // Enhanced create method that accepts only the JournalEntry with AI analysis
     public JournalEntry create(JournalEntry entry) {
         if (entry.getUser() != null && entry.getUser().getId() != null) {
             Long userId = entry.getUser().getId();
-            // If user exists, set the managed user; otherwise clear the reference so JPA doesn't try to persist a transient user
             var optUser = userRepo.findById(userId);
             if (optUser.isPresent()) {
                 entry.setUser(optUser.get());
@@ -42,9 +50,27 @@ public class JournalEntryService {
             }
         }
 
+        // Auto-detect mood if not provided
+        if (entry.getMood() == null) {
+            Mood detectedMood = sentimentService.analyzeSentiment(entry.getContent());
+            entry.setMood(detectedMood);
+        }
+
         return entryRepo.save(entry);
     }
+    
+    // Add method to get mood suggestions
+    public Mood suggestMood(String content) {
+        return sentimentService.analyzeSentiment(content);
+    }
+    
+    // Add method to get confidence score
+    public double getMoodConfidence(String content, Mood mood) {
+        return sentimentService.getSentimentConfidence(content, mood);
+    }
 
+    // ... keep all your existing methods unchanged ...
+    
     public List<JournalEntry> getByUser(Long userId) {
         return entryRepo.findByUserId(userId);
     }
@@ -55,7 +81,6 @@ public class JournalEntryService {
                 Mood moodEnum = Mood.valueOf(mood.toUpperCase());
                 return entryRepo.findByMoodAndVisibility(moodEnum, Visibility.PUBLIC_ANON);
             } catch (IllegalArgumentException e) {
-                // Handle invalid mood string
                 return List.of();
             }
         }
@@ -74,12 +99,22 @@ public class JournalEntryService {
         return entryRepo.findById(id).map(e -> {
             e.setTitle(updated.getTitle());
             e.setContent(updated.getContent());
-            // parse mood/visibility from strings safely
+            
+            // Re-analyze mood if content changed
+            if (updated.getContent() != null && !updated.getContent().equals(e.getContent())) {
+                Mood suggestedMood = sentimentService.analyzeSentiment(updated.getContent());
+                // Use suggested mood if no explicit mood provided
+                if (updated.getMood() == null || updated.getMood().isBlank()) {
+                    e.setMood(suggestedMood);
+                }
+            }
+            
+            // Parse mood/visibility from strings safely
             if (updated.getMood() != null && !updated.getMood().isBlank()) {
                 try {
                     e.setMood(Mood.valueOf(updated.getMood().toUpperCase()));
                 } catch (IllegalArgumentException ex) {
-                    // ignore invalid mood and leave existing value
+                    // ignore invalid mood and keep existing or suggested value
                 }
             }
             if (updated.getVisibility() != null && !updated.getVisibility().isBlank()) {
@@ -93,7 +128,6 @@ public class JournalEntryService {
         }).orElseThrow(() -> new NoSuchElementException("JournalEntry not found"));
     }
 
-    // Accept a full JournalEntry payload and apply changes to the existing entry
     public JournalEntry updateJournal(Long id, JournalEntry updatedEntry) {
         return entryRepo.findById(id).map(e -> {
             e.setTitle(updatedEntry.getTitle());
