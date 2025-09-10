@@ -450,13 +450,19 @@
             };
 
             const fetchMyEntries = async () => {
-                if (!currentUser) return;
+                if (!currentUser) {
+                    console.log('No current user, skipping fetchMyEntries');
+                    return;
+                }
                 try {
                     setLoading(true);
+                    console.log('Fetching entries for user:', currentUser.id);
                     const response = await journalAPI.getMyEntries(currentUser.id);
+                    console.log('API Response for my entries:', response.data);
                     setMyEntries(response.data);
                 } catch (err) {
-                    showError('Failed to fetch your entries');
+                    console.error('Error fetching my entries:', err);
+                    showError('Failed to fetch your entries: ' + (err.response?.data?.error || err.message));
                 } finally {
                     setLoading(false);
                 }
