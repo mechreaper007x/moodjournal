@@ -1,74 +1,173 @@
-/**
- * Draws a bar chart of mood frequencies on an HTML canvas.
- * @param {Array} entries - The list of journal entries.
- */
-const drawMoodChart = (entries) => {
-    const canvas = document.getElementById('mood-chart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+document.addEventListener('DOMContentLoaded', function() {
+    checkLoginStatus();
+    loadJournalEntries();
 
-    const moodColors = {
-        HAPPY: '#FFD700',   // Gold
-        SAD: '#4169E1',     // Royal Blue
-        ANXIOUS: '#FFA500', // Orange
-        ANGRY: '#DC143C',   // Crimson
-        CHILL: '#87CEEB',   // Sky Blue
-        CALM: '#98FB98',    // Pale Green
-        NEUTRAL: '#D3D3D3'  // Light Grey
+    const journalForm = document.getElementById('journalForm');
+    const entryContent = document.getElementById('entryContent');
+    const moodSuggestion = document.getElementById('moodSuggestion');
+
+    // Handle form submission for new/updated entries
+    journalForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        saveJournalEntry();
+    });
+
+    // AI Mood Suggestion Listener
+    entryContent.addEventListener('input', function() {
+        suggestMood(this.value);
+    });
+
+    // Make the mood suggestion clickable
+    moodSuggestion.addEventListener('click', function() {
+        const suggestedMood = document.getElementById('suggestedMood').textContent.toUpperCase();
+        if (suggestedMood) {
+            document.getElementById('entryMood').value = suggestedMood;
+            this.style.display = 'none'; // Hide after selection
+        }
+    });
+
+    // Logout functionality
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+    }
+});
+
+// Function to save or update a journal entry
+function saveJournalEntry() {
+    const entryId = document.getElementById('entryId').value;
+    const title = document.getElementById('entryTitle').value;
+    const content = document.getElementById('entryContent').value;
+    const mood = document.getElementById('entryMood').value;
+    const visibility = document.getElementById('entryVisibility').value;
+    const userId = localStorage.getItem('userId');
+
+    if (!userId) {
+        alert('You must be logged in to save an entry.');
+        return;
+    }
+
+    const entryData = {
+        title,
+        content,
+        mood,
+        visibility,
+        userId: parseInt(userId, 10)
     };
-    const moods = Object.keys(moodColors);
 
-    // 1. Count mood occurrences
-    const moodCounts = moods.reduce((acc, mood) => ({ ...acc, [mood]: 0 }), {});
-    entries.forEach(entry => {
-        if (moodCounts.hasOwnProperty(entry.mood)) {
-            moodCounts[entry.mood]++;
+    const method = entryId ? 'PUT' : 'POST';
+    const url = entryId ? `/api/journal-entries/${entryId}` : '/api/journal-entries';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(entryData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to save entry.');
         }
-    });
+        return response.json();
+    })
+    .then(() => {
+        resetForm();
+        loadJournalEntries();
+    })
+    .catch(error => console.error('Error saving entry:', error));
+}
 
-    // 2. Set up chart dimensions
-    const chartWidth = canvas.width - 60;
-    const chartHeight = canvas.height - 60;
-    const barWidth = (chartWidth / moods.length) * 0.8;
-    const barSpacing = (chartWidth / moods.length) * 0.2;
-    const maxCount = Math.max(...Object.values(moodCounts), 1);
+// Function to load and display all journal entries for the logged-in user
+function loadJournalEntries() {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        return;
+    }
 
-    // 3. Clear canvas and draw
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
+    fetch(`/api/journal-entries/user/${userId}`)
+        .then(response => response.json())
+        .then(entries => {
+            const entriesList = document.getElementById('entriesList');
+            entriesList.innerHTML = ''; // Clear current list
+            entries.forEach(entry => {
+                const entryElement = document.createElement('div');
+                entryElement.className = 'entry';
+                entryElement.innerHTML = `
+                    <h3>${entry.title}</h3>
+                    <p class="entry-meta"><strong>Mood:</strong> ${entry.mood} | <strong>Visibility:</strong> ${entry.visibility}</p>
+                    <p>${entry.content.substring(0, 150)}...</p>
+                    <button onclick="editEntry(${entry.id})">Edit</button>
+                    <button onclick="deleteEntry(${entry.id})">Delete</button>
+                `;
+                entriesList.appendChild(entryElement);
+            });
+        })
+        .catch(error => console.error('Error loading entries:', error));
+}
 
-    let currentX = 40;
+// Function to populate the form for editing an entry
+function editEntry(id) {
+    fetch(`/api/journal-entries/${id}`)
+        .then(response => response.json())
+        .then(entry => {
+            document.getElementById('entryId').value = entry.id;
+            document.getElementById('entryTitle').value = entry.title;
+            document.getElementById('entryContent').value = entry.content;
+            document.getElementById('entryMood').value = entry.mood;
+            document.getElementById('entryVisibility').value = entry.visibility;
+            document.getElementById('formTitle').textContent = 'Edit Journal Entry';
+            window.scrollTo(0, 0); // Scroll to top to see the form
+        });
+}
 
-    moods.forEach(mood => {
-        const count = moodCounts[mood];
-        const barHeight = (count / maxCount) * chartHeight;
-        const barTopY = chartHeight + 20 - barHeight;
+// Function to delete an entry
+function deleteEntry(id) {
+    if (confirm('Are you sure you want to delete this entry?')) {
+        fetch(`/api/journal-entries/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadJournalEntries();
+                } else {
+                    alert('Failed to delete entry.');
+                }
+            });
+    }
+}
 
-        // Draw Bar
-        ctx.fillStyle = moodColors[mood];
-        ctx.fillRect(currentX, barTopY, barWidth, barHeight);
+// Function to get mood suggestion from the AI service
+function suggestMood(content) {
+    const moodSuggestionContainer = document.getElementById('moodSuggestion');
+    if (content.trim().length < 15) { // Only suggest after some typing
+        moodSuggestionContainer.style.display = 'none';
+        return;
+    }
 
-        // Draw Mood Label (X-axis)
-        ctx.fillStyle = '#333';
-        ctx.fillText(mood, currentX + barWidth / 2, chartHeight + 40);
+    fetch('/api/ai/suggest-mood', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.mood && data.mood !== 'NEUTRAL') {
+                document.getElementById('suggestedMood').textContent = data.mood.toLowerCase();
+                moodSuggestionContainer.style.display = 'block';
+            } else {
+                moodSuggestionContainer.style.display = 'none';
+            }
+        })
+        .catch(error => console.error('Error getting mood suggestion:', error));
+}
 
-        // --- THIS IS THE FIX ---
-        // By setting the textBaseline to 'bottom', the 'y' coordinate in fillText
-        // now refers to the bottom of the text, making positioning predictable.
-        if (count > 0) {
-            ctx.textBaseline = 'bottom'; // Set text alignment
-            ctx.fillStyle = '#333';
-            ctx.fillText(count, currentX + barWidth / 2, barTopY - 5); // Position 5px above the bar
-        }
-       
-        currentX += barWidth + barSpacing;
-    });
-
-    // Draw Y-Axis line
-    ctx.beginPath();
-    ctx.moveTo(30, 20);
-    ctx.lineTo(30, chartHeight + 20);
-    ctx.strokeStyle = '#333';
-    ctx.stroke();
-};
+// Function to clear the form fields
+function resetForm() {
+    document.getElementById('journalForm').reset();
+    document.getElementById('entryId').value = '';
+    document.getElementById('formTitle').textContent = 'New Journal Entry';
+    document.getElementById('moodSuggestion').style.display = 'none';
+}
