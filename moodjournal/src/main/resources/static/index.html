@@ -134,6 +134,12 @@
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+
         .btn-secondary {
             background: linear-gradient(135deg, #6c757d, #5a6268);
         }
@@ -162,6 +168,41 @@
             background: #667eea;
             color: white;
             border-color: #667eea;
+        }
+
+        .mood-option.ai-suggested {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .mood-option.ai-suggested.selected {
+            background: #28a745;
+            color: white;
+        }
+
+        .ai-suggestion-box {
+            margin-top: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f8ff, #e6f3ff);
+            border-radius: 15px;
+            border: 2px solid #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .ai-suggestion-box h4 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .ai-suggestion-box p {
+            margin: 0 0 10px 0;
+            line-height: 1.6;
+        }
+
+        .ai-suggestion-box .confidence {
+            font-size: 0.9rem;
+            color: #666;
         }
 
         .journal-entry {
@@ -389,12 +430,17 @@
 
         // API Functions
         const journalAPI = {
-            createEntry: (entry) => api.post('/journal', entry),
-            getAllEntries: () => api.get('/journal'),
-            getMyEntries: (userId) => api.get(`/journal/me?userId=${userId}`),
-            getCommunityEntries: (mood) => api.get(`/journal/community${mood ? `?mood=${mood}` : ''}`),
-            updateEntry: (id, entry) => api.put(`/journal/${id}`, entry),
-            deleteEntry: (id) => api.delete(`/journal/${id}`),
+            createEntry: (entry) => api.post('/api/journal-entries', entry),
+            getAllEntries: () => api.get('/api/journal-entries'),
+            getMyEntries: (userId) => api.get(`/api/journal-entries/user/${userId}`),
+            getCommunityEntries: (mood) => api.get(`/api/journal-entries/public${mood ? `?mood=${mood}` : ''}`),
+            updateEntry: (id, entry) => api.put(`/api/journal-entries/${id}`, entry),
+            deleteEntry: (id) => api.delete(`/api/journal-entries/${id}`),
+        };
+
+        // AI API Functions - THIS WAS MISSING!
+        const aiAPI = {
+            analyzeMood: (content) => api.post('/api/ai/suggest-mood', { content: content })
         };
 
         const userAPI = {
@@ -557,8 +603,8 @@
             const handleInputChange = (e) => {
                 setFormData({ ...formData, [e.target.name]: e.target.value });
                 
-                // Clear AI suggestion when content changes
-                if (e.target.name === 'content') {
+                // Clear AI suggestion when content changes significantly
+                if (e.target.name === 'content' && aiSuggestion) {
                     setAiSuggestion(null);
                 }
             };
@@ -573,15 +619,27 @@
                     return;
                 }
 
+                if (formData.content.trim().length < 10) {
+                    onError('Please write at least 10 characters for accurate mood analysis');
+                    return;
+                }
+
                 try {
                     setAnalyzingMood(true);
+                    console.log('Analyzing mood for content:', formData.content);
+                    
                     const response = await aiAPI.analyzeMood(formData.content);
+                    console.log('AI Response:', response.data);
+                    
                     setAiSuggestion(response.data);
                     
                     // Auto-select the suggested mood
                     setFormData({ ...formData, mood: response.data.suggestedMood });
+                    
+                    onSuccess('AI analysis complete! 🤖');
                 } catch (err) {
-                    onError('Failed to analyze mood. Please select manually.');
+                    console.error('AI Analysis Error:', err);
+                    onError('Failed to analyze mood. Please select manually. Error: ' + (err.response?.data?.message || err.message));
                 } finally {
                     setAnalyzingMood(false);
                 }
@@ -630,7 +688,7 @@
                         </div>
 
                         <div className="form-group">
-                            <label>Your thoughts *</label>
+                            <label>Your thoughts * <small>(Write at least 10 characters for AI analysis)</small></label>
                             <textarea
                                 name="content"
                                 className="form-control"
@@ -644,44 +702,44 @@
                                     type="button" 
                                     className="btn btn-secondary" 
                                     onClick={analyzeMoodAI}
-                                    disabled={analyzingMood || !formData.content.trim()}
+                                    disabled={analyzingMood || formData.content.trim().length < 10}
                                 >
                                     {analyzingMood ? '🤔 Analyzing...' : '🤖 AI Mood Analysis'}
                                 </button>
                             </div>
                             
                             {aiSuggestion && (
-                                <div style={{ 
-                                    marginTop: '15px', 
-                                    padding: '15px', 
-                                    background: '#f0f8ff', 
-                                    borderRadius: '10px',
-                                    border: '2px solid #667eea'
-                                }}>
-                                    <h4 style={{ margin: '0 0 10px 0', color: '#667eea' }}>🤖 AI Analysis</h4>
-                                    <p style={{ margin: '0 0 10px 0' }}>{aiSuggestion.message}</p>
-                                    <p style={{ margin: '0', fontSize: '0.9rem', color: '#666' }}>
-                                        <strong>Suggested Mood:</strong> {aiSuggestion.suggestedMood} 
-                                        <span className={`mood-badge ${aiSuggestion.suggestedMood}`} style={{ marginLeft: '10px' }}>
+                                <div className="ai-suggestion-box">
+                                    <h4>🤖 AI Analysis Results</h4>
+                                    <p><strong>Analysis:</strong> {aiSuggestion.message}</p>
+                                    <p><strong>Suggested Mood:</strong> 
+                                        <span className={`mood-badge ${aiSuggestion.suggestedMood}`}>
                                             {aiSuggestion.suggestedMood}
                                         </span>
+                                    </p>
+                                    <p className="confidence">
+                                        <strong>Confidence:</strong> {aiSuggestion.confidence}%
                                     </p>
                                 </div>
                             )}
                         </div>
 
                         <div className="form-group">
-                            <label>How are you feeling? * {aiSuggestion && <span style={{color: '#667eea'}}>(AI suggested: {aiSuggestion.suggestedMood})</span>}</label>
+                            <label>How are you feeling? * 
+                                {aiSuggestion && (
+                                    <span style={{color: '#28a745', fontWeight: 'normal'}}>
+                                        {' '}(AI suggested: {aiSuggestion.suggestedMood})
+                                    </span>
+                                )}
+                            </label>
                             <div className="mood-selector">
                                 {MOOD_OPTIONS.map(mood => (
                                     <div
                                         key={mood}
-                                        className={`mood-option ${formData.mood === mood ? 'selected' : ''} ${aiSuggestion && aiSuggestion.suggestedMood === mood ? 'ai-suggested' : ''}`}
+                                        className={`mood-option ${formData.mood === mood ? 'selected' : ''} ${
+                                            aiSuggestion && aiSuggestion.suggestedMood === mood ? 'ai-suggested' : ''
+                                        }`}
                                         onClick={() => handleMoodSelect(mood)}
-                                        style={aiSuggestion && aiSuggestion.suggestedMood === mood ? {
-                                            borderColor: '#667eea',
-                                            backgroundColor: formData.mood === mood ? '#667eea' : '#f0f8ff'
-                                        } : {}}
                                     >
                                         {mood} {aiSuggestion && aiSuggestion.suggestedMood === mood && '🤖'}
                                     </div>
@@ -854,25 +912,6 @@
                                 </div>
                             ))}
                         </div>
-                    </div>
-                    <div className="form-group">
-                        <textarea
-                            className="form-control"
-                            value={entry.content}
-                            onChange={(e) => handleChange('content', e.target.value)}
-                            placeholder="Your thoughts..."
-                            rows="4"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <select
-                            className="form-control"
-                            value={entry.visibility}
-                            onChange={(e) => handleChange('visibility', e.target.value)}
-                        >
-                            <option value="PRIVATE">Private</option>
-                            <option value="PUBLIC_ANON">Share with community</option>
-                        </select>
                     </div>
                     <div className="entry-actions">
                         <button className="btn btn-sm" onClick={onSave}>
