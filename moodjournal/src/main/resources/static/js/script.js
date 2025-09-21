@@ -57,19 +57,20 @@ function saveJournalEntry() {
 
     if (!userId) {
         alert('You must be logged in to save an entry.');
+        window.location.href = '/login.html';
         return;
     }
 
     const entryData = {
         title,
         content,
-        mood,
+        mood: mood || null, // Allow empty mood for AI detection
         visibility,
         userId: parseInt(userId, 10)
     };
 
     const method = entryId ? 'PUT' : 'POST';
-    const url = entryId ? `/api/journal-entries/${entryId}` : '/api/journal-entries';
+    const url = entryId ? `/journal/${entryId}` : '/journal';
 
     fetch(url, {
         method: method,
@@ -80,15 +81,21 @@ function saveJournalEntry() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Failed to save entry.');
+            return response.text().then(text => {
+                throw new Error(text || 'Failed to save entry.');
+            });
         }
         return response.json();
     })
     .then(() => {
         resetForm();
         loadJournalEntries();
+        alert('Entry saved successfully!');
     })
-    .catch(error => console.error('Error saving entry:', error));
+    .catch(error => {
+        console.error('Error saving entry:', error);
+        alert('Error saving entry: ' + error.message);
+    });
 }
 
 // Function to load and display all journal entries for the logged-in user
@@ -96,12 +103,17 @@ function loadJournalEntries() {
     const userId = localStorage.getItem('userId');
     if (!userId) {
         console.log('No user ID found, cannot load entries.');
+        window.location.href = '/login.html';
         return;
     }
 
-    fetch(`/api/journal-entries/user/${userId}`)
+    fetch(`/journal/me?userId=${userId}`)
         .then(response => {
             if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
@@ -111,6 +123,12 @@ function loadJournalEntries() {
             if (!entriesList) return;
             
             entriesList.innerHTML = ''; // Clear current list
+            
+            if (entries.length === 0) {
+                entriesList.innerHTML = '<p>No entries yet. Create your first mood journal entry!</p>';
+                return;
+            }
+            
             entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by most recent
             
             entries.forEach(entry => {
@@ -131,12 +149,17 @@ function loadJournalEntries() {
                 entriesList.appendChild(entryElement);
             });
         })
-        .catch(error => console.error('Error loading entries:', error));
+        .catch(error => {
+            console.error('Error loading entries:', error);
+            if (error.message.includes('401')) {
+                window.location.href = '/login.html';
+            }
+        });
 }
 
 // Function to populate the form for editing an entry
 function editEntry(id) {
-    fetch(`/api/journal-entries/${id}`)
+    fetch(`/journal/${id}`)
         .then(response => response.json())
         .then(entry => {
             document.getElementById('entryId').value = entry.id;
@@ -146,21 +169,30 @@ function editEntry(id) {
             document.getElementById('entryVisibility').value = entry.visibility;
             document.getElementById('formTitle').textContent = 'Edit Journal Entry';
             window.scrollTo(0, 0); // Scroll to top to see the form
+        })
+        .catch(error => {
+            console.error('Error loading entry:', error);
+            alert('Error loading entry for editing.');
         });
 }
 
 // Function to delete an entry
 function deleteEntry(id) {
     if (confirm('Are you sure you want to delete this entry?')) {
-        fetch(`/api/journal-entries/${id}`, {
+        fetch(`/journal/${id}`, {
                 method: 'DELETE'
             })
             .then(response => {
                 if (response.ok) {
                     loadJournalEntries();
+                    alert('Entry deleted successfully!');
                 } else {
                     alert('Failed to delete entry.');
                 }
+            })
+            .catch(error => {
+                console.error('Error deleting entry:', error);
+                alert('Error deleting entry.');
             });
     }
 }
@@ -221,8 +253,23 @@ function resetForm() {
     }
 }
 
+// Function to check if user is logged in
+function checkLoginStatus() {
+    const userId = localStorage.getItem('userId');
+    if (!userId && !window.location.pathname.includes('login.html')) {
+        window.location.href = '/login.html';
+    }
+}
+
+// Function to logout user
+function logout() {
+    localStorage.removeItem('userId');
+    window.location.href = '/login.html';
+}
+
 // Utility to prevent XSS attacks
 function escapeHTML(str) {
+    if (!str) return '';
     return str.replace(/[&<>"']/g, function(match) {
         return {
             '&': '&amp;',

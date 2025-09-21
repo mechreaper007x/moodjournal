@@ -44,13 +44,21 @@ public class JournalEntryController {
         // Set mood from request if it exists and is not empty
         if (req.getMood() != null && !req.getMood().isBlank()) {
             try {
- entry.setMood(Mood.valueOf(req.getMood().toUpperCase()));
+                entry.setMood(Mood.valueOf(req.getMood().toUpperCase()));
             } catch (IllegalArgumentException e) {
                 // If mood is invalid, it will be null, and the service will auto-detect it
             }
         }
         if (req.getVisibility() != null && !req.getVisibility().isBlank()) {
-            entry.setVisibility(Visibility.valueOf(req.getVisibility().toUpperCase()));
+            try {
+                entry.setVisibility(Visibility.valueOf(req.getVisibility().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // Default to PRIVATE if invalid visibility
+                entry.setVisibility(Visibility.PRIVATE);
+            }
+        } else {
+            // Default to PRIVATE if no visibility specified
+            entry.setVisibility(Visibility.PRIVATE);
         }
 
         // The service will now handle the logic
@@ -62,12 +70,20 @@ public class JournalEntryController {
 
     @GetMapping("/me")
     public ResponseEntity<List<JournalEntry>> myEntries(@RequestParam Long userId){
-        return ResponseEntity.ok(service.getByUser(userId));
+        try {
+            return ResponseEntity.ok(service.getByUser(userId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/community")
     public ResponseEntity<List<JournalEntry>> community(@RequestParam(required = false) String mood){
-        return ResponseEntity.ok(service.getPublicEntries(mood));
+        try {
+            return ResponseEntity.ok(service.getPublicEntries(mood));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/{id}")

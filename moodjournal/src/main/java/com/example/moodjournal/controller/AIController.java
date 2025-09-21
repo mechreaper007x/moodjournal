@@ -28,6 +28,7 @@ public class AIController {
 
  @PostMapping("/suggest-mood")
  public Map<String, Object> suggestMood(@RequestBody SuggestMoodRequest payload) {
+ try {
  String content = payload.getContent();
  if (content == null || content.isBlank()) {
  return Collections.emptyMap(); // Return empty if there's no content
@@ -44,5 +45,12 @@ public class AIController {
  "confidence", String.format("%.2f", confidence * 100),
  "signs", signs
  );
+ } catch (Exception e) {
+ // Return error response
+ return Map.of(
+ "error", "Failed to analyze mood",
+ "message", e.getMessage()
+ );
+ }
  }
 }

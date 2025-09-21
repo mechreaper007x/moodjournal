@@ -99,16 +99,96 @@ main {
     padding: 1rem;
     margin-bottom: 1rem;
     border-radius: 5px;
+    transition: box-shadow 0.3s ease;
+}
+
+.entry:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .entry h3 {
     margin-top: 0;
+    color: #333;
 }
 
 .entry .meta {
     font-size: 0.9rem;
     color: #666;
     margin-bottom: 0.5rem;
+}
+
+.entry-meta {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.entry-actions {
+    margin-top: 1rem;
+}
+
+.entry-actions button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.entry-actions button:hover {
+    background: #0056b3;
+}
+
+.entry-actions button:last-child {
+    background: #dc3545;
+}
+
+.entry-actions button:last-child:hover {
+    background: #c82333;
+}
+
+#moodSuggestion {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#moodSuggestion:hover {
+    background: #d1ecf1;
+}
+
+#moodSuggestion p {
+    margin: 0 0 0.5rem 0;
+}
+
+#moodSuggestion small {
+    color: #666;
+    font-style: italic;
+}
+
+.filter-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.filter-section label {
+    margin-right: 1rem;
+    font-weight: bold;
+}
+
+.filter-section select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 3px;
 }
 
 footer {

@@ -12,19 +12,81 @@
         <nav>
             <a href="/index.html">My Journal</a>
             <a href="/community.html">Community</a>
-            <a href="#" id="logout-btn">Logout</a>
+            <button id="logoutButton" onclick="logout()">Logout</button>
         </nav>
     </header>
     <main>
         <div class="container">
             <h2>Public Journal Entries</h2>
+            <div class="filter-section">
+                <label for="moodFilter">Filter by mood:</label>
+                <select id="moodFilter" onchange="loadCommunityEntries()">
+                    <option value="">All moods</option>
+                    <option value="HAPPY">Happy</option>
+                    <option value="SAD">Sad</option>
+                    <option value="ANXIOUS">Anxious</option>
+                    <option value="ANGRY">Angry</option>
+                    <option value="CHILL">Chill</option>
+                    <option value="CALM">Calm</option>
+                    <option value="NEUTRAL">Neutral</option>
+                </select>
+            </div>
             <div id="journal-entries">
-                </div>
+                <!-- Community entries will be loaded here -->
+            </div>
         </div>
     </main>
     <footer>
         <p>&copy; 2025 Mood Journal</p>
     </footer>
     <script src="/js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            loadCommunityEntries();
+        });
+        
+        function loadCommunityEntries() {
+            const mood = document.getElementById('moodFilter').value;
+            const url = mood ? `/journal/community?mood=${mood}` : '/journal/community';
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(entries => {
+                    const entriesContainer = document.getElementById('journal-entries');
+                    entriesContainer.innerHTML = '';
+                    
+                    if (entries.length === 0) {
+                        entriesContainer.innerHTML = '<p>No public entries found.</p>';
+                        return;
+                    }
+                    
+                    entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    
+                    entries.forEach(entry => {
+                        const entryElement = document.createElement('div');
+                        entryElement.className = 'entry';
+                        entryElement.innerHTML = `
+                            <h3>${escapeHTML(entry.title)}</h3>
+                            <p class="entry-meta">
+                                <strong>Mood:</strong> ${escapeHTML(entry.mood)} | 
+                                <strong>Date:</strong> ${new Date(entry.createdAt).toLocaleDateString()}
+                            </p>
+                            <p>${escapeHTML(entry.content)}</p>
+                        `;
+                        entriesContainer.appendChild(entryElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading community entries:', error);
+                    document.getElementById('journal-entries').innerHTML = '<p>Error loading entries.</p>';
+                });
+        }
+    </script>
 </body>
 </html>
