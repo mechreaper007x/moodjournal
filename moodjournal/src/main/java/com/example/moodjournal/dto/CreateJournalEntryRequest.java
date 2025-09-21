@@ -12,22 +12,21 @@ public class CreateJournalEntryRequest {
     @NotBlank(message = "Content cannot be empty")
     private String content;
 
+    @NotNull(message = "Mood is required")
     private String mood;
 
+    @NotNull(message = "Visibility is required")
     private String visibility;
 
     private Long userId;
 
     public String getTitle() {
-        return title;
+ return title;
     }
     public void setTitle(String title) {
-        this.title = title;
+ this.title = title;
     }
 
-    public String getContent() {
-        return content;
-    }
     public void setContent(String content) { this.content = content; }
 
     public String getMood() { return mood; }

@@ -27,9 +27,7 @@ public class JournalEntryService {
     }
 
     public JournalEntry create(Long userId, JournalEntry entry) {
-        if (userId != null) {
-            userRepo.findById(userId).ifPresent(entry::setUser);
-        }
+        userRepo.findById(userId).ifPresent(entry::setUser);
 
         // If the user did NOT select a mood, use the AI to detect it.
         if (entry.getMood() == null) {

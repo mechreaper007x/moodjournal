@@ -26,14 +26,14 @@ public class SentimentAnalysisService {
         // Happy words
         String[] happyWords = {"happy", "joy", "excited", "amazing", "wonderful", "fantastic", 
                               "great", "awesome", "love", "perfect", "brilliant", "excellent", 
-                              "cheerful", "delighted", "thrilled", "ecstatic", "blissful", "good", "nice", "pleasant"};
+                              "cheerful", "delighted", "thrilled", "ecstatic", "blissful"};
         for (String word : happyWords) {
             POSITIVE_WORDS.put(word, Mood.HAPPY);
         }
         
         // Calm/Chill words
         String[] calmWords = {"calm", "peaceful", "relaxed", "serene", "tranquil", "content", 
-                             "satisfied", "comfortable", "easy", "chill", "zen", "balanced", "quiet", "still"};
+                             "satisfied", "comfortable", "easy", "chill", "zen", "balanced"};
         for (String word : calmWords) {
             POSITIVE_WORDS.put(word, Mood.CALM);
         }
@@ -41,7 +41,7 @@ public class SentimentAnalysisService {
         // Sad words
         String[] sadWords = {"sad", "depressed", "unhappy", "miserable", "down", "blue", 
                             "heartbroken", "disappointed", "gloomy", "melancholy", "crying", 
-                            "tears", "lonely", "empty", "hopeless", "hurt", "pain", "sorrow"};
+                            "tears", "lonely", "empty", "hopeless"};
         for (String word : sadWords) {
             NEGATIVE_WORDS.put(word, Mood.SAD);
         }
@@ -49,21 +49,21 @@ public class SentimentAnalysisService {
         // Anxious words
         String[] anxiousWords = {"anxious", "worried", "nervous", "stressed", "panic", "fear", 
                                 "scared", "overwhelmed", "tension", "uneasy", "restless", 
-                                "troubled", "concerned", "frightened", "worry", "stress"};
+                                "troubled", "concerned", "frightened"};
         for (String word : anxiousWords) {
             NEGATIVE_WORDS.put(word, Mood.ANXIOUS);
         }
         
         // Angry words
         String[] angryWords = {"angry", "mad", "furious", "rage", "hate", "annoyed", "irritated", 
-                              "frustrated", "pissed", "outraged", "livid", "enraged", "bitter", "upset"};
+                              "frustrated", "pissed", "outraged", "livid", "enraged", "bitter"};
         for (String word : angryWords) {
             NEGATIVE_WORDS.put(word, Mood.ANGRY);
         }
         
         // Neutral words
         String[] neutralWords = {"okay", "fine", "normal", "regular", "usual", "average", "meh", 
-                                "nothing", "same", "routine", "typical", "ordinary", "alright"};
+                                "nothing", "same", "routine", "typical", "ordinary"};
         for (String word : neutralWords) {
             NEUTRAL_WORDS.put(word, Mood.NEUTRAL);
         }
