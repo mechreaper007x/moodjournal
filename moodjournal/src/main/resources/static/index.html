@@ -663,7 +663,7 @@
                     setAiSuggestion(null);
                     onSuccess('Journal entry created successfully! 🎉');
                 } catch (err) {
-                    onError('Failed to create entry. Please try again.');
+                    onError('Failed to create entry. Please try again. Error: ' + (err.response?.data?.message || err.message));
                 } finally {
                     setSubmitting(false);
                 }
@@ -701,7 +701,7 @@
                                 <button 
                                     type="button" 
                                     className="btn btn-secondary" 
-                                    onClick={analyzeMoodAI}
+                                    onClick={analyzeMoodAI} // AI should be taking decision
                                     disabled={analyzingMood || formData.content.trim().length < 10}
                                 >
                                     {analyzingMood ? '🤔 Analyzing...' : '🤖 AI Mood Analysis'}
@@ -738,6 +738,7 @@
                                         key={mood}
                                         className={`mood-option ${formData.mood === mood ? 'selected' : ''} ${
                                             aiSuggestion && aiSuggestion.suggestedMood === mood ? 'ai-suggested' : ''
+
                                         }`}
                                         onClick={() => handleMoodSelect(mood)}
                                     >
@@ -754,12 +755,11 @@
                                 className="form-control"
                                 value={formData.visibility}
                                 onChange={handleInputChange}
-                            >
+                            > 
                                 <option value="PRIVATE">Private (only you can see)</option>
                                 <option value="PUBLIC_ANON">Share with community (anonymous)</option>
                             </select>
                         </div>
-
                         <button type="submit" className="btn" disabled={submitting}>
                             {submitting ? '✨ Creating...' : '📝 Save Entry'}
                         </button>
@@ -912,6 +912,25 @@
                                 </div>
                             ))}
                         </div>
+                    </div>
+                    <div className="form-group">
+                        <textarea
+                            className="form-control"
+                            value={entry.content}
+                            onChange={(e) => handleChange('content', e.target.value)}
+                            placeholder="Your thoughts..."
+                            rows="4"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <select
+                            className="form-control"
+                            value={entry.visibility}
+                            onChange={(e) => handleChange('visibility', e.target.value)}
+                        >
+                            <option value="PRIVATE">Private</option>
+                            <option value="PUBLIC_ANON">Share with community</option>
+                        </select>
                     </div>
                     <div className="entry-actions">
                         <button className="btn btn-sm" onClick={onSave}>
@@ -1102,7 +1121,7 @@
                                 tooltip: {
                                     callbacks: {
                                         label: function(context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0); // Fix: Ensure total is calculated correctly
                                             const percentage = ((context.parsed / total) * 100).toFixed(1);
                                             return `${context.label}: ${context.parsed} (${percentage}%)`;
                                         }
@@ -1262,5 +1281,8 @@
         // Render the main app
         ReactDOM.render(<MoodJournalApp />, document.getElementById('root'));
     </script>
+    <script src="js/auth.js"></script>
+    <script src="js/script.js"></script>
+    <script src="src/main/java/com/example/moodjournal/service/SentimentAnalysisService.java"></script>
 </body>
 </html>

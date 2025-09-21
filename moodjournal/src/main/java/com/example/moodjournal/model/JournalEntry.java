@@ -2,8 +2,6 @@ package com.example.moodjournal.model;
 
 import java.time.Instant;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -69,7 +67,7 @@ public class JournalEntry {
     public Visibility getVisibility() { return visibility; }
     public void setVisibility(Visibility visibility) { this.visibility = visibility; }
 
-  @JsonIgnore
+
   public User getUser() { return user; }
   public void setUser(User user) { this.user = user; }
 

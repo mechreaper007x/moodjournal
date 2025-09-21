@@ -39,7 +39,8 @@ public class GlobalExceptionHandler {
             if (target != null && target.isEnum()) {
                 String allowed = Arrays.stream(target.getEnumConstants())
                         .map(Object::toString)
-                        .collect(Collectors.joining(", "));
+ .map(s -> s.toLowerCase()) // Convert enum names to lowercase for better user experience
+ .collect(Collectors.joining(", "));
                 String message = String.format("Invalid value for '%s'. Allowed values: %s", field.isEmpty() ? "field" : field, allowed);
                 return new ResponseEntity<>(Map.of(field.isEmpty() ? "error" : field, message), HttpStatus.BAD_REQUEST);
             }

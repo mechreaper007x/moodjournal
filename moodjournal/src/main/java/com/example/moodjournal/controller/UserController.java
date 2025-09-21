@@ -14,7 +14,7 @@ import com.example.moodjournal.repository.UserRepository;
 public class UserController {
     private final UserRepository userRepo;
     public UserController(UserRepository userRepo) { this.userRepo = userRepo; }
-
+ 
     @PostMapping("/register")
     public ResponseEntity<User> register(@RequestBody User user) {
         // NOTE: simple save for now. Add validation and password hashing later.

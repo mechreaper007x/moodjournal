@@ -16,8 +16,13 @@ public class SentimentAnalysisService {
     private static final Map<String, Mood> POSITIVE_WORDS = new HashMap<>();
     private static final Map<String, Mood> NEGATIVE_WORDS = new HashMap<>();
     private static final Map<String, Mood> NEUTRAL_WORDS = new HashMap<>();
-    
+    private static final Map<String, String> EMPATHY_WORDS = new HashMap<>();
+    private static final Map<String, String> OPTIMISM_WORDS = new HashMap<>();
+    private static final Map<String, String> REFLECTION_WORDS = new HashMap<>();
+
     static {
+        // Populate the new maps inside the static block
+
         // Happy words
         String[] happyWords = {"happy", "joy", "excited", "amazing", "wonderful", "fantastic", 
                               "great", "awesome", "love", "perfect", "brilliant", "excellent", 
@@ -62,6 +67,15 @@ public class SentimentAnalysisService {
         for (String word : neutralWords) {
             NEUTRAL_WORDS.put(word, Mood.NEUTRAL);
         }
+
+        String[] empathyWords = {"understand", "share", "connect", "feel for", "sympathize", "relate"};
+        for (String word : empathyWords) EMPATHY_WORDS.put(word, "Empathy");
+
+        String[] optimismWords = {"hopeful", "future", "tomorrow", "believe", "opportunity", "growth", "positive"};
+        for (String word : optimismWords) OPTIMISM_WORDS.put(word, "Optimism");
+
+        String[] reflectionWords = {"realized", "thought", "remember", "wonder", "reflect", "myself", "re-evaluate"};
+        for (String word : reflectionWords) REFLECTION_WORDS.put(word, "Reflection");
     }
     
     public Mood analyzeSentiment(String text) {
@@ -124,5 +138,28 @@ public class SentimentAnalysisService {
         }
         
         return totalWords > 0 ? (double) moodWordCount / totalWords : 0.0;
+    }
+
+    public java.util.List<String> analyzeAdditionalSigns(String text) {
+        java.util.Set<String> detectedSigns = new java.util.HashSet<>();
+        if (text == null || text.trim().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        String cleanText = text.toLowerCase().replaceAll("[^a-zA-Z\\s]", " ");
+        String[] words = cleanText.split("\\s+");
+
+        for (String word : words) {
+            if (EMPATHY_WORDS.containsKey(word)) {
+                detectedSigns.add(EMPATHY_WORDS.get(word));
+            }
+            if (OPTIMISM_WORDS.containsKey(word)) {
+                detectedSigns.add(OPTIMISM_WORDS.get(word));
+            }
+            if (REFLECTION_WORDS.containsKey(word)) {
+                detectedSigns.add(REFLECTION_WORDS.get(word));
+            }
+        }
+        return new java.util.ArrayList<>(detectedSigns);
     }
 }

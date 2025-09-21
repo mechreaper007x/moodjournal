@@ -28,13 +28,14 @@ public class JournalEntryService {
 
     public JournalEntry create(Long userId, JournalEntry entry) {
         userRepo.findById(userId).ifPresent(entry::setUser);
-        
-        // Auto-detect mood if not provided
+
+        // If the user did NOT select a mood, use the AI to detect it.
         if (entry.getMood() == null) {
             Mood detectedMood = sentimentService.analyzeSentiment(entry.getContent());
             entry.setMood(detectedMood);
         }
-        
+        // If the user DID select a mood, it will already be set on the entry object.
+
         return entryRepo.save(entry);
     }
 
@@ -104,7 +105,7 @@ public class JournalEntryService {
             if (updated.getContent() != null && !updated.getContent().equals(e.getContent())) {
                 Mood suggestedMood = sentimentService.analyzeSentiment(updated.getContent());
                 // Use suggested mood if no explicit mood provided
-                if (updated.getMood() == null || updated.getMood().isBlank()) {
+                if (updated.getMood() == null || updated.getMood().isBlank() || e.getMood() == null) {
                     e.setMood(suggestedMood);
                 }
             }

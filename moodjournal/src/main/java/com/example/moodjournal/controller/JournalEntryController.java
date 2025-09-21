@@ -41,19 +41,20 @@ public class JournalEntryController {
         JournalEntry entry = new JournalEntry();
         entry.setTitle(req.getTitle());
         entry.setContent(req.getContent());
+        // Set mood from request if it exists and is not empty
         if (req.getMood() != null && !req.getMood().isBlank()) {
-            entry.setMood(Mood.valueOf(req.getMood().toUpperCase()));
+            try {
+ entry.setMood(Mood.valueOf(req.getMood().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // If mood is invalid, it will be null, and the service will auto-detect it
+            }
         }
         if (req.getVisibility() != null && !req.getVisibility().isBlank()) {
             entry.setVisibility(Visibility.valueOf(req.getVisibility().toUpperCase()));
         }
 
-        JournalEntry created;
-        if (req.getUserId() != null) {
-            created = service.create(req.getUserId(), entry);
-        } else {
-            created = service.create(entry);
-        }
+        // The service will now handle the logic
+        JournalEntry created = service.create(req.getUserId(), entry);
 
         URI location = URI.create(String.format("/journal/%d", created.getId()));
         return ResponseEntity.status(HttpStatus.CREATED).location(location).body(created);

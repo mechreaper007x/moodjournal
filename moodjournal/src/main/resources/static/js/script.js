@@ -1,35 +1,48 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // This function runs once the HTML document is fully loaded.
+
+    // Universal functions for all pages
     checkLoginStatus();
-    loadJournalEntries();
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+    }
+
+    // --- Page-Specific Logic for the Main Journal Page ---
 
     const journalForm = document.getElementById('journalForm');
     const entryContent = document.getElementById('entryContent');
     const moodSuggestion = document.getElementById('moodSuggestion');
 
-    // Handle form submission for new/updated entries
-    journalForm.addEventListener('submit', function(event) {
-        event.preventDefault();
-        saveJournalEntry();
-    });
+    // Only run journal-related code if the main form exists on the page.
+    if (journalForm) {
+        loadJournalEntries();
 
-    // AI Mood Suggestion Listener
-    entryContent.addEventListener('input', function() {
-        suggestMood(this.value);
-    });
+        journalForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            saveJournalEntry();
+        });
+    }
 
-    // Make the mood suggestion clickable
-    moodSuggestion.addEventListener('click', function() {
-        const suggestedMood = document.getElementById('suggestedMood').textContent.toUpperCase();
-        if (suggestedMood) {
-            document.getElementById('entryMood').value = suggestedMood;
-            this.style.display = 'none'; // Hide after selection
-        }
-    });
+    // Only add the AI suggestion listener if the content box exists.
+    if (entryContent) {
+        entryContent.addEventListener('input', function() {
+            suggestMood(this.value);
+        });
+    }
 
-    // Logout functionality
-    const logoutButton = document.getElementById('logoutButton');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', logout);
+    // Only add the click listener if the suggestion element exists.
+    if (moodSuggestion) {
+        moodSuggestion.addEventListener('click', function() {
+            const suggestedMoodText = document.getElementById('suggestedMood').textContent;
+            // Correctly extracts the mood (e.g., "happy" from "happy (95.24%)")
+            const mood = suggestedMoodText.split(' ')[0].toUpperCase();
+            
+            if (mood) {
+                document.getElementById('entryMood').value = mood;
+                this.style.display = 'none'; // Hide after selection
+            }
+        });
     }
 });
 
@@ -82,23 +95,38 @@ function saveJournalEntry() {
 function loadJournalEntries() {
     const userId = localStorage.getItem('userId');
     if (!userId) {
+        console.log('No user ID found, cannot load entries.');
         return;
     }
 
     fetch(`/api/journal-entries/user/${userId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(entries => {
             const entriesList = document.getElementById('entriesList');
+            if (!entriesList) return;
+            
             entriesList.innerHTML = ''; // Clear current list
+            entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by most recent
+            
             entries.forEach(entry => {
                 const entryElement = document.createElement('div');
                 entryElement.className = 'entry';
                 entryElement.innerHTML = `
-                    <h3>${entry.title}</h3>
-                    <p class="entry-meta"><strong>Mood:</strong> ${entry.mood} | <strong>Visibility:</strong> ${entry.visibility}</p>
-                    <p>${entry.content.substring(0, 150)}...</p>
-                    <button onclick="editEntry(${entry.id})">Edit</button>
-                    <button onclick="deleteEntry(${entry.id})">Delete</button>
+                    <h3>${escapeHTML(entry.title)}</h3>
+                    <p class="entry-meta">
+                        <strong>Mood:</strong> ${escapeHTML(entry.mood)} | 
+                        <strong>Date:</strong> ${new Date(entry.createdAt).toLocaleDateString()}
+                    </p>
+                    <p>${escapeHTML(entry.content.substring(0, 150))}...</p>
+                    <div class="entry-actions">
+                        <button onclick="editEntry(${entry.id})">Edit</button>
+                        <button onclick="deleteEntry(${entry.id})">Delete</button>
+                    </div>
                 `;
                 entriesList.appendChild(entryElement);
             });
@@ -150,12 +178,30 @@ function suggestMood(content) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ content })
+            body: JSON.stringify({
+                content
+            })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
+            const suggestedMoodEl = document.getElementById('suggestedMood');
+            const suggestedSignsEl = document.getElementById('suggestedSigns');
+
             if (data.mood && data.mood !== 'NEUTRAL') {
-                document.getElementById('suggestedMood').textContent = data.mood.toLowerCase();
+                // Display mood and confidence
+                suggestedMoodEl.textContent = `${data.mood.toLowerCase()} (${data.confidence}%)`;
+
+                // Display other detected signs if they exist
+                if (data.signs && data.signs.length > 0) {
+                    suggestedSignsEl.textContent = `| Signs: ${data.signs.join(', ')}`;
+                } else {
+                    suggestedSignsEl.textContent = '';
+                }
                 moodSuggestionContainer.style.display = 'block';
             } else {
                 moodSuggestionContainer.style.display = 'none';
@@ -166,8 +212,24 @@ function suggestMood(content) {
 
 // Function to clear the form fields
 function resetForm() {
-    document.getElementById('journalForm').reset();
-    document.getElementById('entryId').value = '';
-    document.getElementById('formTitle').textContent = 'New Journal Entry';
-    document.getElementById('moodSuggestion').style.display = 'none';
+    const form = document.getElementById('journalForm');
+    if (form) {
+        form.reset();
+        document.getElementById('entryId').value = '';
+        document.getElementById('formTitle').textContent = 'New Journal Entry';
+        document.getElementById('moodSuggestion').style.display = 'none';
+    }
+}
+
+// Utility to prevent XSS attacks
+function escapeHTML(str) {
+    return str.replace(/[&<>"']/g, function(match) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match];
+    });
 }

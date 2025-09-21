@@ -1,6 +1,8 @@
 package com.example.moodjournal.controller;
 
-import java.util.Map; // <-- Make sure to import the new DTO
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,21 +12,37 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.moodjournal.dto.SuggestMoodRequest;
 import com.example.moodjournal.model.Mood;
 import com.example.moodjournal.service.JournalEntryService;
+import com.example.moodjournal.service.SentimentAnalysisService;
 
 @RestController
 @RequestMapping("/api/ai")
 public class AIController {
+ private final JournalEntryService journalEntryService;
+ private final SentimentAnalysisService sentimentService;
 
-    private final JournalEntryService journalEntryService;
+ // The constructor MUST accept both services. This is the critical fix.
+ public AIController(JournalEntryService journalEntryService, SentimentAnalysisService sentimentService) {
+ this.journalEntryService = journalEntryService;
+ this.sentimentService = sentimentService; // This line fixes the crash
+ }
 
-    public AIController(JournalEntryService journalEntryService) {
-        this.journalEntryService = journalEntryService;
-    }
+ @PostMapping("/suggest-mood")
+ public Map<String, Object> suggestMood(@RequestBody SuggestMoodRequest payload) {
+ String content = payload.getContent();
+ if (content == null || content.isBlank()) {
+ return Collections.emptyMap(); // Return empty if there's no content
+ }
 
-    @PostMapping("/suggest-mood")
-    public Map<String, String> suggestMood(@RequestBody SuggestMoodRequest payload) {
-        String content = payload.getContent();
-        Mood suggestedMood = journalEntryService.suggestMood(content);
-        return Map.of("mood", suggestedMood.name());
-    }
+ // Now the controller can safely use both services without crashing
+ Mood suggestedMood = journalEntryService.suggestMood(content);
+ double confidence = journalEntryService.getMoodConfidence(content, suggestedMood);
+ List<String> signs = sentimentService.analyzeAdditionalSigns(content);
+
+ // This will now return the full analysis data successfully
+ return Map.of(
+ "mood", suggestedMood.name(),
+ "confidence", String.format("%.2f", confidence * 100),
+ "signs", signs
+ );
+ }
 }
