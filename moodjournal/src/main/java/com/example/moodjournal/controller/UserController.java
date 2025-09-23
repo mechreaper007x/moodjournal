@@ -2,6 +2,7 @@ package com.example.moodjournal.controller;
 
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +31,7 @@ public class UserController {
             }
             
             User saved = userRepo.save(user);
-            saved.setPassword(null); // Don't return password
+            saved.setPassword(null); // Don't return password in the response
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -46,12 +47,11 @@ public class UserController {
                 loggedInUser.setPassword(null); // Don't return password
                 return ResponseEntity.ok(loggedInUser);
             }
-            return ResponseEntity.unauthorized().build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-    }
-    
+    }   
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser(@RequestParam Long userId) {
         try {

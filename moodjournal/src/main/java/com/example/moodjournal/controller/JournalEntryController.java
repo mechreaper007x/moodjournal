@@ -37,53 +37,42 @@ public class JournalEntryController {
 
     // POST /journal - create using request body only (user may be omitted)
     @PostMapping
-    public ResponseEntity<JournalEntry> createEntry(@Valid @RequestBody CreateJournalEntryRequest req) {
+    public ResponseEntity<?> createEntry(@Valid @RequestBody CreateJournalEntryRequest req) {
+        if (req.getUserId() == null) { // Ensure userId is provided
+            return ResponseEntity.badRequest().body(Map.of("error", "userId must be provided"));
+        }
         JournalEntry entry = new JournalEntry();
         entry.setTitle(req.getTitle());
         entry.setContent(req.getContent());
         // Set mood from request if it exists and is not empty
         if (req.getMood() != null && !req.getMood().isBlank()) {
             try {
-                entry.setMood(Mood.valueOf(req.getMood().toUpperCase()));
+                entry.setMood(Mood.valueOf(req.getMood().toUpperCase())); // Convert string to Mood enum
             } catch (IllegalArgumentException e) {
                 // If mood is invalid, it will be null, and the service will auto-detect it
             }
         }
         if (req.getVisibility() != null && !req.getVisibility().isBlank()) {
-            try {
-                entry.setVisibility(Visibility.valueOf(req.getVisibility().toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                // Default to PRIVATE if invalid visibility
-                entry.setVisibility(Visibility.PRIVATE);
-            }
-        } else {
-            // Default to PRIVATE if no visibility specified
-            entry.setVisibility(Visibility.PRIVATE);
+            entry.setVisibility(Visibility.valueOf(req.getVisibility().toUpperCase()));
         }
 
-        // The service will now handle the logic
-        JournalEntry created = service.create(req.getUserId(), entry);
-
-        URI location = URI.create(String.format("/journal/%d", created.getId()));
-        return ResponseEntity.status(HttpStatus.CREATED).location(location).body(created);
+        try {
+            JournalEntry created = service.create(req.getUserId(), entry);
+            URI location = URI.create(String.format("/journal/%d", created.getId()));
+            return ResponseEntity.status(HttpStatus.CREATED).location(location).body(created);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/me")
     public ResponseEntity<List<JournalEntry>> myEntries(@RequestParam Long userId){
-        try {
-            return ResponseEntity.ok(service.getByUser(userId));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        return ResponseEntity.ok(service.getByUser(userId));
     }
 
     @GetMapping("/community")
     public ResponseEntity<List<JournalEntry>> community(@RequestParam(required = false) String mood){
-        try {
-            return ResponseEntity.ok(service.getPublicEntries(mood));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        return ResponseEntity.ok(service.getPublicEntries(mood));
     }
 
     @GetMapping("/{id}")
