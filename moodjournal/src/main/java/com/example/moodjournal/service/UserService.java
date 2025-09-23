@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service;
 import com.example.moodjournal.model.User;
 import com.example.moodjournal.repository.UserRepository;
 
-@Service public class UserService {
+@Service
+public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -18,21 +19,18 @@ import com.example.moodjournal.repository.UserRepository;
     }
 
     public User register(User user) {
-        // Check if user already exists
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            throw new RuntimeException("Username is already taken");
+        if (userRepository.findByUsername(user.getUsername()).isPresent() || userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new RuntimeException("Email is already taken");
         }
-        // Hash the password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
-    public Optional<User> login(User user) {
-        Optional<User> optionalUser = userRepository.findByUsername(user.getUsername());
+    public Optional<User> login(String email, String password) {
+        Optional<User> optionalUser = userRepository.findByEmail(email);
         if (optionalUser.isPresent()) {
             User existingUser = optionalUser.get();
-            // Check if the provided password matches the stored hashed password
-            if (passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
+            if (passwordEncoder.matches(password, existingUser.getPassword())) {
                 return Optional.of(existingUser);
             }
         }

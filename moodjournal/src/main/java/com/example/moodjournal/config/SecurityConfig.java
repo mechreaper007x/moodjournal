@@ -2,6 +2,7 @@ package com.example.moodjournal.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,15 +22,23 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF protection for stateless APIs
+            // Disable CSRF protection, common for stateless APIs
             .csrf(csrf -> csrf.disable())
             
             // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() // Allow unauthenticated access to auth endpoints
-                .requestMatchers("/journal/community").permitAll() // Allow unauthenticated access to community journal entries
-                .requestMatchers("/").permitAll() // Allow unauthenticated access to home
-                .requestMatchers("/hello").permitAll() // Allow unauthenticated access to hello
+                // **FIX:** Explicitly allow all OPTIONS requests for CORS pre-flight checks
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                
+                // Allow unauthenticated access to static resources and auth endpoints
+                .requestMatchers(
+                    "/", 
+                    "/*.html", 
+                    "/css/**", 
+                    "/js/**", 
+                    "/api/auth/**"
+                ).permitAll()
+                
                 // All other requests must be authenticated
                 .anyRequest().authenticated()
             )
@@ -42,3 +51,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

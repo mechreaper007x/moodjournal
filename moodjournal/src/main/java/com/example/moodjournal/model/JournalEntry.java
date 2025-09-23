@@ -71,7 +71,7 @@ public class JournalEntry {
   public User getUser() { return user; }
   public void setUser(User user) { this.user = user; }
 
-  public Instant getCreatedAt() { return createdAt; }
+ public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
     public Instant getUpdatedAt() { return updatedAt; }

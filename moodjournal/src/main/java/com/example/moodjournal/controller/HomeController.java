@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class HomeController {
 
     // This method handles the request to the root URL "/"
-    @GetMapping("/")
-    public String home() {
-        return "Welcome to the Mood Journal Application!";
+ @GetMapping("/")
+ public String home() {
+ return "Welcome to the Mood Journal Application!";
     }
 
     // This new method handles the request to "/hello"

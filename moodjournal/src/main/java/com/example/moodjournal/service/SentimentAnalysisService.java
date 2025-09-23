@@ -24,7 +24,7 @@ public class SentimentAnalysisService {
         // Populate the new maps inside the static block
 
         // Happy words
-        String[] happyWords = {"happy", "joy", "excited", "amazing", "wonderful", "fantastic", 
+        String[] happyWords = {"happy", "joy", "excited", "amazing", "wonderful", "fantastic",
                               "great", "awesome", "love", "perfect", "brilliant", "excellent", 
                               "cheerful", "delighted", "thrilled", "ecstatic", "blissful", "good", "nice", "pleasant"};
         for (String word : happyWords) {
@@ -32,7 +32,7 @@ public class SentimentAnalysisService {
         }
         
         // Calm/Chill words
-        String[] calmWords = {"calm", "peaceful", "relaxed", "serene", "tranquil", "content", 
+        String[] calmWords = {"calm", "peaceful", "relaxed", "serene", "tranquil", "content",
                              "satisfied", "comfortable", "easy", "chill", "zen", "balanced", "quiet", "still"};
         for (String word : calmWords) {
             POSITIVE_WORDS.put(word, Mood.CALM);
@@ -40,7 +40,7 @@ public class SentimentAnalysisService {
         
         // Sad words
         String[] sadWords = {"sad", "depressed", "unhappy", "miserable", "down", "blue", 
-                            "heartbroken", "disappointed", "gloomy", "melancholy", "crying", 
+                            "heartbroken", "disappointed", "gloomy", "melancholy", "crying",
                             "tears", "lonely", "empty", "hopeless", "hurt", "pain", "sorrow"};
         for (String word : sadWords) {
             NEGATIVE_WORDS.put(word, Mood.SAD);
@@ -48,7 +48,7 @@ public class SentimentAnalysisService {
         
         // Anxious words
         String[] anxiousWords = {"anxious", "worried", "nervous", "stressed", "panic", "fear", 
-                                "scared", "overwhelmed", "tension", "uneasy", "restless", 
+                                "scared", "overwhelmed", "tension", "uneasy", "restless",
                                 "troubled", "concerned", "frightened", "worry", "stress"};
         for (String word : anxiousWords) {
             NEGATIVE_WORDS.put(word, Mood.ANXIOUS);
@@ -56,7 +56,7 @@ public class SentimentAnalysisService {
         
         // Angry words
         String[] angryWords = {"angry", "mad", "furious", "rage", "hate", "annoyed", "irritated", 
-                              "frustrated", "pissed", "outraged", "livid", "enraged", "bitter", "upset"};
+                              "frustrated", "pissed", "outraged", "livid", "enraged", "bitter", "upset", "hostile"};
         for (String word : angryWords) {
             NEGATIVE_WORDS.put(word, Mood.ANGRY);
         }
@@ -64,7 +64,7 @@ public class SentimentAnalysisService {
         // Neutral words
         String[] neutralWords = {"okay", "fine", "normal", "regular", "usual", "average", "meh", 
                                 "nothing", "same", "routine", "typical", "ordinary", "alright"};
-        for (String word : neutralWords) {
+        for (String word : neutralWords) { // Corrected to use NEUTRAL_WORDS map
             NEUTRAL_WORDS.put(word, Mood.NEUTRAL);
         }
 

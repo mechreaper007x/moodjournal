@@ -7,6 +7,7 @@ import com.example.moodjournal.model.JournalEntry;
 import com.example.moodjournal.model.Mood;
 import com.example.moodjournal.model.Visibility;
 
+// This interface defines the repository for JournalEntry entities.
 public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long> {
     List<JournalEntry> findByUserId(Long userId);
     List<JournalEntry> findByVisibility(Visibility visibility);

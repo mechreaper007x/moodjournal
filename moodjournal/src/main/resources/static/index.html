@@ -4,61 +4,671 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood Journal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(45deg, #667eea, #764ba2);
+            --secondary-gradient: linear-gradient(45deg, #f093fb, #f5576c);
+            --bg-gradient: linear-gradient(135deg, #1a1a2e, #16213e);
+            --container-bg: rgba(40, 40, 60, 0.85);
+            --form-bg: rgba(255, 255, 255, 0.05);
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --focus-color: #667eea;
+        }
 
- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
- <link rel="stylesheet" href="/css/style.css">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .menu-icon {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            z-index: 1100;
+            transition: transform 0.3s ease;
+        }
+        
+        .menu-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 280px;
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(15px);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 1000;
+            width: 280px;
+            padding: 100px 0 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Distributes space between header, nav, and logout */
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+        
+        .sidebar-nav li a {
+            display: block;
+            padding: 18px 40px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: background 0.3s, color 0.3s, padding-left 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-nav li a:hover, .sidebar-nav li a.active {
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--text-primary);
+            border-left: 4px solid var(--focus-color);
+            padding-left: 45px;
+        }
+
+        .sidebar-footer {
+            padding: 20px 40px;
+            text-align: center;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #f5576c, #f093fb);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .journal-form, .chart-container {
+            background: var(--form-bg);
+            border-radius: 20px;
+            padding: 30px;
+        }
+        
+        .form-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .sun-icon {
+            margin-right: 15px;
+            font-size: 2rem;
+            color: #ffc83d;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--focus-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        .btn-ai {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-ai:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-submit {
+            background: var(--secondary-gradient);
+            color: white;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.3);
+        }
+
+        .quote-container {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            border-left: 4px solid var(--focus-color);
+            text-align: center;
+            transition: opacity 0.5s ease;
+        }
+
+        #quote-text {
+            font-style: italic;
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        #quote-author {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* Emotion Analysis Styles */
+        .emotion-analysis-container {
+            background: var(--form-bg);
+            border-radius: 20px;
+            padding: 30px;
+            display: none; /* Initially hidden */
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .emotion-analysis-container.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .emotion-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .emotion-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .emotion-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .emotion-label {
+            width: 100px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .emotion-bar-container {
+            flex: 1;
+            height: 12px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .emotion-bar {
+            height: 100%;
+            width: 0; /* Initially 0, set by JS */
+            border-radius: 6px;
+            background: var(--primary-gradient);
+            transition: width 1s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 0;
+            }
+            .header h1 { font-size: 2.2rem; }
+            .button-group { flex-direction: column; }
+            .menu-icon { top: 25px; left: 25px; font-size: 1.8rem; }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateX(calc(100% + 30px));
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 2000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+    </style>
 </head>
 <body>
-    <header>
-        <h1>My Mood Journal</h1>
-        <nav>
-            <a href="/index.html">My Journal</a>
-            <a href="/community.html">Community</a>
-            <button id="logoutButton" onclick="logout()">Logout</button>
-        </nav>
-    </header>
-    <main>
-        <div class="container">
-            <h2 id="formTitle">New Journal Entry</h2>
-            <form id="journalForm">
-                <input type="hidden" id="entryId" value="">
-                <input type="text" id="entryTitle" placeholder="Entry Title" required>
-                <textarea id="entryContent" placeholder="How are you feeling today? Describe your mood and thoughts..." required></textarea>
-                
-                <div class="form-row">
-                    <select id="entryMood">
-                        <option value="">Let AI choose my mood</option>
-                        <option value="HAPPY">Happy</option>
-                        <option value="SAD">Sad</option>
-                        <option value="ANXIOUS">Anxious</option>
-                        <option value="ANGRY">Angry</option>
-                        <option value="CHILL">Chill</option>
-                        <option value="CALM">Calm</option>
-                        <option value="NEUTRAL">Neutral</option>
-                    </select>
-                    <select id="entryVisibility">
-                        <option value="PRIVATE">Private</option>
-                        <option value="PUBLIC_ANON">Public (Anonymous)</option>
-                        <option value="PUBLIC">Public</option>
-                    </select>
-                </div>
-                
-                <div id="moodSuggestion" style="display: none;">
-                    <p>💡 AI suggests: <strong id="suggestedMood"></strong> <span id="suggestedSigns"></span></p>
-                    <small>Click to use this mood</small>
-                </div>
-                
-                <button type="submit">Save Entry</button>
-            </form>
-            
-            <div id="entriesList">
-                <!-- Journal entries will be loaded here -->
-            </div>
+
+    <div id="sidebar" class="sidebar">
+        <h2 class="sidebar-header">Navigation</h2>
+        <ul class="sidebar-nav">
+            <li><a href="/index.html" class="active">Write Entry</a></li>
+            <li><a href="#">My Entries</a></li>
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="/community.html">Community</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <button id="logoutButton" class="logout-btn">Logout</button>
         </div>
-    </main>
-    <footer>
-        <p>&copy; 2025 Mood Journal</p>
-    </footer>
-    <script src="/js/script.js"></script>
+    </div>
+
+    <div class="container">
+        <div id="menuIcon" class="menu-icon">☰</div>
+        <header class="header">
+            <h1>Mood Journal</h1>
+            <p>Track your emotions, visualize your mental wellness journey</p>
+        </header>
+
+        <main class="main-content">
+            <div class="journal-form">
+                <div class="form-header">
+                    <span class="sun-icon">☀️</span>
+                    Create a new Journal
+                </div>
+                <form id="journalForm">
+                    <div class="form-group">
+                        <label for="title">Title*</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="thought">Your Thought*</label>
+                        <textarea id="thought" name="thought" rows="6" required></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" id="aiButton" class="btn btn-ai">
+                            <svg id="aiIcon" class="w-5 h-5" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/></svg>
+                            <svg id="aiSpinner" class="spinner" width="20" height="20" style="display:none;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span id="aiButtonText">AI Mood Analysis</span>
+                        </button>
+                        <button type="submit" class="btn btn-submit">Submit</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="right-column">
+                <div class="chart-container">
+                    <canvas id="moodChart"></canvas>
+                </div>
+                <div id="emotionAnalysisContainer" class="emotion-analysis-container">
+                    <h3 class="emotion-header">Emotion Breakdown</h3>
+                    <ul id="emotionList" class="emotion-list">
+                        <!-- Emotion items will be injected here by JS -->
+                    </ul>
+                </div>
+                <div id="quote-container" class="quote-container">
+                    <p id="quote-text">Loading inspiration...</p>
+                    <p id="quote-author"></p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Authentication Check ---
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                // If no user is logged in, redirect to the login page.
+                window.location.href = window.location.origin + '/login.html';
+                return; // Stop executing script on this page
+            }
+
+            // --- DOM Element Selection ---
+            const form = document.getElementById('journalForm');
+            const titleInput = document.getElementById('title');
+            const thoughtInput = document.getElementById('thought');
+            const aiButton = document.getElementById('aiButton');
+            const menuIcon = document.getElementById('menuIcon');
+            const sidebar = document.getElementById('sidebar');
+            const notificationEl = document.getElementById('notification');
+            let moodChart;
+
+            // --- UI & Event Listeners ---
+            menuIcon.addEventListener('click', () => sidebar.classList.toggle('active'));
+            document.addEventListener('click', (e) => {
+                if (!sidebar.contains(e.target) && !menuIcon.contains(e.target) && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+            });
+
+            // --- Logout Functionality ---
+            const logoutButton = document.getElementById('logoutButton');
+            logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('userId');
+                window.location.href = window.location.origin + '/login.html';
+            });
+            form.addEventListener('submit', handleFormSubmit);
+            aiButton.addEventListener('click', handleAIAnalysis);
+
+            // --- Core Functions ---
+            function showNotification(message, duration = 3000) {
+                notificationEl.textContent = message;
+                notificationEl.classList.add('show');
+                setTimeout(() => notificationEl.classList.remove('show'), duration);
+            }
+
+            function setLoading(isLoading) {
+                const aiIcon = document.getElementById('aiIcon');
+                const aiSpinner = document.getElementById('aiSpinner');
+                const aiButtonText = document.getElementById('aiButtonText');
+                aiButton.disabled = isLoading;
+                aiIcon.style.display = isLoading ? 'none' : 'block';
+                aiSpinner.style.display = isLoading ? 'block' : 'none';
+                aiButtonText.textContent = isLoading ? 'Analyzing...' : 'AI Mood Analysis';
+            }
+
+            async function handleFormSubmit(e) {
+                e.preventDefault();
+                const title = titleInput.value.trim();
+                const content = thoughtInput.value.trim();
+
+                if (!title || !content) {
+                    showNotification('⚠️ Please provide both a title and a thought.');
+                    return;
+                }
+                
+                const entryData = {
+                    title,
+                    content,
+                    userId: parseInt(userId, 10),
+                    visibility: 'PRIVATE' // Defaulting to private, can be changed later
+                };
+
+                try {
+                    const response = await fetch('/journal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(entryData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to save entry.');
+                    }
+                    
+                    const newEntry = await response.json();
+                    updateChart(newEntry.mood); // Update chart with the mood detected by the backend
+                    showNotification('✅ Journal entry submitted successfully!');
+                    form.reset();
+                    document.getElementById('emotionAnalysisContainer').classList.remove('visible');
+
+                } catch (error) {
+                    console.error('Error saving entry:', error);
+                    showNotification(`❌ Error: ${error.message}`);
+                }
+            }
+            
+            // --- Chart.js Logic ---
+            function createChart() {
+                const ctx = document.getElementById('moodChart').getContext('2d');
+                moodChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Joyful', 'Calm', 'Anxious', 'Productive'],
+                        datasets: [{
+                            data: [50, 80, 65, 30],
+                            backgroundColor: ['rgba(102, 126, 234, 0.7)', 'rgba(52, 211, 153, 0.7)', 'rgba(251, 113, 133, 0.7)', 'rgba(167, 139, 250, 0.7)'],
+                            borderColor: ['#667eea', '#34d399', '#fb7185', '#a78bfa'],
+                            borderWidth: 2,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, title: { display: true, text: 'Your Mood Analysis', color: '#FFFFFF', font: { size: 18, weight: '600', family: 'Inter' }}},
+                        scales: { 
+                            y: { afterFit: (scale) => { scale.width = 85; }, ticks: { color: '#a0a0b0'}, grid: { color: 'rgba(255, 255, 255, 0.1)'}}, 
+                            x: { max: 100, ticks: { color: '#a0a0b0'}, grid: { color: 'rgba(255, 255, 255, 0.1)'}}}
+                    }
+                });
+            }
+
+            function updateChart(label, value = 10) {
+                 if (!moodChart) return;
+                 const data = moodChart.data;
+                 const formattedLabel = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+                 const existingLabelIndex = data.labels.findIndex(l => l.toLowerCase() === formattedLabel.toLowerCase());
+
+                 if (existingLabelIndex !== -1) {
+                     data.datasets[0].data[existingLabelIndex] += value;
+                 } else {
+                     data.labels.push(formattedLabel);
+                     data.datasets[0].data.push(value);
+                     const newColor = `rgba(${Math.floor(Math.random()*155)+100}, ${Math.floor(Math.random()*155)+100}, ${Math.floor(Math.random()*155)+100}, 0.7)`;
+                     data.datasets[0].backgroundColor.push(newColor);
+                     data.datasets[0].borderColor.push(newColor.replace('0.7', '1'));
+                 }
+                 moodChart.update();
+            }
+
+            async function handleAIAnalysis() {
+                const thought = thoughtInput.value.trim();
+                if (!thought) {
+                    showNotification('⚠️ Please enter a thought before analyzing.');
+                    return;
+                }
+                setLoading(true);
+                try {
+                    const response = await fetch('/api/ai/emotion-breakdown', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({text: thought})
+                    });
+                    if (!response.ok) {
+                         const error = await response.json();
+                         throw new Error(error.error || 'Analysis failed');
+                    }
+                    const analysis = await response.json();
+                    displayEmotionAnalysis(analysis);
+                    showNotification('✨ Analysis complete!');
+                } catch (error) {
+                    console.error("AI Analysis Error:", error);
+                    showNotification(`❌ AI Error: ${error.message}`);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            function displayEmotionAnalysis(emotions) {
+                const container = document.getElementById('emotionAnalysisContainer');
+                const list = document.getElementById('emotionList');
+                list.innerHTML = '';
+                if (!emotions || emotions.length === 0) {
+                    list.innerHTML = `<p style="text-align:center; color: var(--text-secondary);">No specific emotions detected.</p>`;
+                } else {
+                    emotions.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'emotion-item';
+                        listItem.innerHTML = `<span class="emotion-label">${item.emotion}</span><div class="emotion-bar-container"><div class="emotion-bar" style="width: 0%;"></div></div><span>${item.score}%</span>`;
+                        list.appendChild(listItem);
+                        setTimeout(() => listItem.querySelector('.emotion-bar').style.width = `${item.score}%`, 100);
+                    });
+                }
+                container.classList.add('visible');
+            }
+
+            async function getDailyQuote() {
+                const quoteTextEl = document.getElementById('quote-text');
+                const quoteAuthorEl = document.getElementById('quote-author');
+                try {
+                     const response = await fetch('/api/ai/daily-quote', { method: 'POST' });
+                     if (!response.ok) throw new Error('Could not fetch quote.');
+                    const quoteData = await response.json();
+                    quoteTextEl.textContent = `"${quoteData.quote}"`;
+                    quoteAuthorEl.textContent = `- ${quoteData.author}`;
+                } catch (error) {
+                    console.error("Quote fetching error:", error);
+                    quoteTextEl.textContent = '"The journey of a thousand miles begins with a single step."';
+                    quoteAuthorEl.textContent = '- Lao Tzu';
+                }
+            }
+            
+            // --- INITIALIZE APP ---
+            createChart();
+            getDailyQuote();
+        });
+    </script>
 </body>
 </html>

@@ -57,7 +57,7 @@ public class JournalEntryController {
         }
 
         try {
-            JournalEntry created = service.create(req.getUserId(), entry);
+            JournalEntry created = service.create(req.getUserId(), entry); // Assuming this method exists and handles mood detection
             URI location = URI.create(String.format("/journal/%d", created.getId()));
             return ResponseEntity.status(HttpStatus.CREATED).location(location).body(created);
         } catch (NoSuchElementException e) {
