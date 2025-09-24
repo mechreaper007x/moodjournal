@@ -472,6 +472,19 @@
                 window.location.href = window.location.origin + '/login.html';
                 return; // Stop executing script on this page
             }
+            
+            // A helper function to add the auth token to fetch requests
+            async function fetchWithAuth(url, options = {}) {
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                return fetch(url, { ...options, headers });
+            }
 
             // --- DOM Element Selection ---
             const form = document.getElementById('journalForm');
@@ -494,6 +507,7 @@
             // --- Logout Functionality ---
             const logoutButton = document.getElementById('logoutButton');
             logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('token');
                 localStorage.removeItem('userId');
                 window.location.href = window.location.origin + '/login.html';
             });
@@ -535,9 +549,8 @@
                 };
 
                 try {
-                    const response = await fetch('/journal', {
+                    const response = await fetchWithAuth('/journal', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(entryData)
                     });
 
@@ -611,9 +624,8 @@
                 }
                 setLoading(true);
                 try {
-                    const response = await fetch('/api/ai/emotion-breakdown', {
+                    const response = await fetchWithAuth('/api/ai/emotion-breakdown', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({text: thought})
                     });
                     if (!response.ok) {
@@ -653,7 +665,7 @@
                 const quoteTextEl = document.getElementById('quote-text');
                 const quoteAuthorEl = document.getElementById('quote-author');
                 try {
-                     const response = await fetch('/api/ai/daily-quote', { method: 'POST' });
+                     const response = await fetchWithAuth('/api/ai/daily-quote', { method: 'POST' });
                      if (!response.ok) throw new Error('Could not fetch quote.');
                     const quoteData = await response.json();
                     quoteTextEl.textContent = `"${quoteData.quote}"`;

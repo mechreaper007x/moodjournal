@@ -213,9 +213,12 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        localStorage.setItem('userId', data.id);
+                        // Store both the token and the user object from the response
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('userId', data.user.id); // Make sure to access the nested user object
                         window.location.href = window.location.origin + '/index.html';
                     } else {
+
                         throw new Error(data.error || 'Login failed.');
                     }
                 } catch (error) {
@@ -239,10 +242,9 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        showNotification('Registration successful! Please login.');
-                        registerForm.reset();
-                        registerFormContainer.style.display = 'none';
-                        loginFormContainer.style.display = 'block';
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('userId', data.user.id);
+                        window.location.href = window.locatiodpn.origin + '/index.html';
                     } else {
                         throw new Error(data.error || 'Registration failed.');
                     }

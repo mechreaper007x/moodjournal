@@ -1,3 +1,16 @@
+// --- Reusable Auth Helper ---
+async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('token');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // This function runs once the HTML document is fully loaded.
 
@@ -72,13 +85,7 @@ function saveJournalEntry() {
     const method = entryId ? 'PUT' : 'POST';
     const url = entryId ? `/journal/${entryId}` : '/journal';
 
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(entryData)
-    })
+    fetchWithAuth(url, { method, body: JSON.stringify(entryData) })
     .then(response => {
         if (!response.ok) {
             return response.text().then(text => {
@@ -107,7 +114,7 @@ function loadJournalEntries() {
         return;
     }
 
-    fetch(`/journal/me?userId=${userId}`)
+    fetchWithAuth(`/journal/me`) // No need for userId query param with JWT
         .then(response => {
             if (!response.ok) {
                 if (response.status === 401) {
@@ -159,7 +166,7 @@ function loadJournalEntries() {
 
 // Function to populate the form for editing an entry
 function editEntry(id) {
-    fetch(`/journal/${id}`)
+    fetchWithAuth(`/journal/${id}`)
         .then(response => response.json())
         .then(entry => {
             document.getElementById('entryId').value = entry.id;
@@ -179,9 +186,7 @@ function editEntry(id) {
 // Function to delete an entry
 function deleteEntry(id) {
     if (confirm('Are you sure you want to delete this entry?')) {
-        fetch(`/journal/${id}`, {
-                method: 'DELETE'
-            })
+        fetchWithAuth(`/journal/${id}`, { method: 'DELETE' })
             .then(response => {
                 if (response.ok) {
                     loadJournalEntries();
@@ -205,15 +210,7 @@ function suggestMood(content) {
         return;
     }
 
-    fetch('/api/ai/suggest-mood', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                content
-            })
-        })
+    fetchWithAuth('/api/ai/suggest-mood', { method: 'POST', body: JSON.stringify({ content }) })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -263,6 +260,7 @@ function checkLoginStatus() {
 
 // Function to logout user
 function logout() {
+    localStorage.removeItem('token');
     localStorage.removeItem('userId');
     window.location.href = '/login.html';
 }

@@ -26,14 +26,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public Optional<User> login(String email, String password) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isPresent()) {
-            User existingUser = optionalUser.get();
-            if (passwordEncoder.matches(password, existingUser.getPassword())) {
-                return Optional.of(existingUser);
-            }
-        }
-        return Optional.empty();
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 }
