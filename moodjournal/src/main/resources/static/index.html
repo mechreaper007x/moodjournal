@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
     <title>Mood Journal</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -92,11 +93,9 @@
             transform: translateX(-100%);
             transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             z-index: 1000;
-            width: 280px;
             padding: 100px 0 40px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Distributes space between header, nav, and logout */
         }
 
         .sidebar.active {
@@ -134,28 +133,6 @@
             color: var(--text-primary);
             border-left: 4px solid var(--focus-color);
             padding-left: 45px;
-        }
-
-        .sidebar-footer {
-            padding: 20px 40px;
-            text-align: center;
-        }
-
-        .logout-btn {
-            width: 100%;
-            padding: 12px 20px;
-            background: linear-gradient(45deg, #f5576c, #f093fb);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .logout-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.3);
         }
 
         .main-content {
@@ -317,9 +294,7 @@
 
         .emotion-list {
             list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            space-y: 15px;
         }
 
         .emotion-item {
@@ -400,14 +375,11 @@
     <div id="sidebar" class="sidebar">
         <h2 class="sidebar-header">Navigation</h2>
         <ul class="sidebar-nav">
-            <li><a href="/index.html" class="active">Write Entry</a></li>
+            <li><a href="#" class="active">Write Entry</a></li>
             <li><a href="#">My Entries</a></li>
             <li><a href="#">Dashboard</a></li>
-            <li><a href="/community.html">Community</a></li>
+            <li><a href="#">Community</a></li>
         </ul>
-        <div class="sidebar-footer">
-            <button id="logoutButton" class="logout-btn">Logout</button>
-        </div>
     </div>
 
     <div class="container">
@@ -426,11 +398,11 @@
                 <form id="journalForm">
                     <div class="form-group">
                         <label for="title">Title*</label>
-                        <input type="text" id="title" name="title" required>
+                        <input type="text" id="title" name="title" required class="w-full px-4 py-2 bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-indigo-500 focus:bg-white transition">
                     </div>
                     <div class="form-group">
                         <label for="thought">Your Thought*</label>
-                        <textarea id="thought" name="thought" rows="6" required></textarea>
+                        <textarea id="thought" name="thought" rows="6" required class="w-full px-4 py-2 bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-indigo-500 focus:bg-white transition"></textarea>
                     </div>
                     <div class="button-group">
                         <button type="button" id="aiButton" class="btn btn-ai">
@@ -465,158 +437,124 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Authentication Check ---
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                // If no user is logged in, redirect to the login page.
-                window.location.href = window.location.origin + '/login.html';
-                return; // Stop executing script on this page
-            }
-            
-            // A helper function to add the auth token to fetch requests
-            async function fetchWithAuth(url, options = {}) {
-                const token = localStorage.getItem('token');
-                const headers = {
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                };
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-                return fetch(url, { ...options, headers });
-            }
-
-            // --- DOM Element Selection ---
+            const ctx = document.getElementById('moodChart').getContext('2d');
             const form = document.getElementById('journalForm');
             const titleInput = document.getElementById('title');
             const thoughtInput = document.getElementById('thought');
             const aiButton = document.getElementById('aiButton');
             const menuIcon = document.getElementById('menuIcon');
             const sidebar = document.getElementById('sidebar');
-            const notificationEl = document.getElementById('notification');
+
             let moodChart;
 
-            // --- UI & Event Listeners ---
-            menuIcon.addEventListener('click', () => sidebar.classList.toggle('active'));
+            // --- Sidebar Logic ---
+            menuIcon.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+            });
             document.addEventListener('click', (e) => {
                 if (!sidebar.contains(e.target) && !menuIcon.contains(e.target) && sidebar.classList.contains('active')) {
-                    sidebar.classList.remove('active');
+                     sidebar.classList.remove('active');
                 }
             });
 
-            // --- Logout Functionality ---
-            const logoutButton = document.getElementById('logoutButton');
-            logoutButton.addEventListener('click', () => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('userId');
-                window.location.href = window.location.origin + '/login.html';
-            });
-            form.addEventListener('submit', handleFormSubmit);
-            aiButton.addEventListener('click', handleAIAnalysis);
-
-            // --- Core Functions ---
+            // --- Notification Logic ---
             function showNotification(message, duration = 3000) {
-                notificationEl.textContent = message;
-                notificationEl.classList.add('show');
-                setTimeout(() => notificationEl.classList.remove('show'), duration);
-            }
-
-            function setLoading(isLoading) {
-                const aiIcon = document.getElementById('aiIcon');
-                const aiSpinner = document.getElementById('aiSpinner');
-                const aiButtonText = document.getElementById('aiButtonText');
-                aiButton.disabled = isLoading;
-                aiIcon.style.display = isLoading ? 'none' : 'block';
-                aiSpinner.style.display = isLoading ? 'block' : 'none';
-                aiButtonText.textContent = isLoading ? 'Analyzing...' : 'AI Mood Analysis';
-            }
-
-            async function handleFormSubmit(e) {
-                e.preventDefault();
-                const title = titleInput.value.trim();
-                const content = thoughtInput.value.trim();
-
-                if (!title || !content) {
-                    showNotification('⚠️ Please provide both a title and a thought.');
-                    return;
-                }
-                
-                const entryData = {
-                    title,
-                    content,
-                    userId: parseInt(userId, 10),
-                    visibility: 'PRIVATE' // Defaulting to private, can be changed later
-                };
-
-                try {
-                    const response = await fetchWithAuth('/journal', {
-                        method: 'POST',
-                        body: JSON.stringify(entryData)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to save entry.');
-                    }
-                    
-                    const newEntry = await response.json();
-                    updateChart(newEntry.mood); // Update chart with the mood detected by the backend
-                    showNotification('✅ Journal entry submitted successfully!');
-                    form.reset();
-                    document.getElementById('emotionAnalysisContainer').classList.remove('visible');
-
-                } catch (error) {
-                    console.error('Error saving entry:', error);
-                    showNotification(`❌ Error: ${error.message}`);
-                }
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, duration);
             }
             
             // --- Chart.js Logic ---
+            const initialData = {
+                labels: ['Joyful', 'Calm', 'Anxious', 'Productive'],
+                datasets: [{
+                    label: 'Mood Frequency',
+                    data: [50, 80, 65, 30],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.7)',
+                        'rgba(52, 211, 153, 0.7)',
+                        'rgba(251, 113, 133, 0.7)',
+                        'rgba(167, 139, 250, 0.7)',
+                    ],
+                    borderColor: [
+                        '#667eea', '#34d399', '#fb7185', '#a78bfa'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            };
+
             function createChart() {
-                const ctx = document.getElementById('moodChart').getContext('2d');
-                moodChart = new Chart(ctx, {
+                 moodChart = new Chart(ctx, {
                     type: 'bar',
-                    data: {
-                        labels: ['Joyful', 'Calm', 'Anxious', 'Productive'],
-                        datasets: [{
-                            data: [50, 80, 65, 30],
-                            backgroundColor: ['rgba(102, 126, 234, 0.7)', 'rgba(52, 211, 153, 0.7)', 'rgba(251, 113, 133, 0.7)', 'rgba(167, 139, 250, 0.7)'],
-                            borderColor: ['#667eea', '#34d399', '#fb7185', '#a78bfa'],
-                            borderWidth: 2,
-                            borderRadius: 8,
-                        }]
-                    },
+                    data: initialData,
                     options: {
                         indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, title: { display: true, text: 'Your Mood Analysis', color: '#FFFFFF', font: { size: 18, weight: '600', family: 'Inter' }}},
-                        scales: { 
-                            y: { afterFit: (scale) => { scale.width = 85; }, ticks: { color: '#a0a0b0'}, grid: { color: 'rgba(255, 255, 255, 0.1)'}}, 
-                            x: { max: 100, ticks: { color: '#a0a0b0'}, grid: { color: 'rgba(255, 255, 255, 0.1)'}}}
+                        plugins: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: 'Your Mood Analysis',
+                                color: '#FFFFFF',
+                                font: { size: 18, weight: '600', family: 'Inter' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                afterFit: function(scale) {
+                                    scale.width = 85;
+                                },
+                                ticks: { color: '#a0a0b0', font: { family: 'Inter' } },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                max: 100,
+                                ticks: { color: '#a0a0b0', font: { family: 'Inter' } },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
+                        }
                     }
                 });
             }
 
-            function updateChart(label, value = 10) {
-                 if (!moodChart) return;
-                 const data = moodChart.data;
-                 const formattedLabel = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
-                 const existingLabelIndex = data.labels.findIndex(l => l.toLowerCase() === formattedLabel.toLowerCase());
-
-                 if (existingLabelIndex !== -1) {
-                     data.datasets[0].data[existingLabelIndex] += value;
-                 } else {
-                     data.labels.push(formattedLabel);
-                     data.datasets[0].data.push(value);
-                     const newColor = `rgba(${Math.floor(Math.random()*155)+100}, ${Math.floor(Math.random()*155)+100}, ${Math.floor(Math.random()*155)+100}, 0.7)`;
-                     data.datasets[0].backgroundColor.push(newColor);
-                     data.datasets[0].borderColor.push(newColor.replace('0.7', '1'));
-                 }
-                 moodChart.update();
+            function updateChart(label, value = 1) {
+                const existingLabelIndex = moodChart.data.labels.indexOf(label);
+                
+                if (existingLabelIndex !== -1) {
+                    moodChart.data.datasets[0].data[existingLabelIndex] += value;
+                } else {
+                    moodChart.data.labels.push(label);
+                    moodChart.data.datasets[0].data.push(value);
+                    const newColor = `rgba(${Math.floor(Math.random()*155)+100}, ${Math.floor(Math.random()*155)+100}, ${Math.floor(Math.random()*155)+100}, 0.7)`;
+                    moodChart.data.datasets[0].backgroundColor.push(newColor);
+                    moodChart.data.datasets[0].borderColor.push(newColor.replace('0.7', '1'));
+                }
+                moodChart.update();
             }
 
-            async function handleAIAnalysis() {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = titleInput.value.trim();
+                const thought = thoughtInput.value.trim();
+
+                if (title && thought) {
+                    updateChart(title);
+                    showNotification('✅ Journal entry submitted successfully!');
+                    form.reset();
+                } else {
+                    showNotification('⚠️ Please fill out both title and thought.');
+                }
+            });
+
+            // --- AI Mood Analysis Logic ---
+            aiButton.addEventListener('click', async () => {
                 const thought = thoughtInput.value.trim();
                 if (!thought) {
                     showNotification('⚠️ Please enter a thought before analyzing.');
@@ -624,60 +562,150 @@
                 }
                 setLoading(true);
                 try {
-                    const response = await fetchWithAuth('/api/ai/emotion-breakdown', {
-                        method: 'POST',
-                        body: JSON.stringify({text: thought})
-                    });
-                    if (!response.ok) {
-                         const error = await response.json();
-                         throw new Error(error.error || 'Analysis failed');
-                    }
-                    const analysis = await response.json();
+                    const analysis = await getEmotionAnalysis(thought);
                     displayEmotionAnalysis(analysis);
-                    showNotification('✨ Analysis complete!');
+                    showNotification('✨ Analysis complete! See breakdown.');
                 } catch (error) {
+                    alert("AI Analysis Error: " + error);
                     console.error("AI Analysis Error:", error);
-                    showNotification(`❌ AI Error: ${error.message}`);
+                    showNotification('❌ Sorry, unable to analyze emotions.');
+                    // Optionally hide or show an error state in the analysis container
+                    const emotionContainer = document.getElementById('emotionAnalysisContainer');
+                    const emotionList = document.getElementById('emotionList');
+                    emotionList.innerHTML = `<p style="text-align:center; color: var(--text-secondary);">Could not retrieve analysis.</p>`;
+                    emotionContainer.classList.add('visible');
+
                 } finally {
                     setLoading(false);
                 }
-            }
+            });
 
             function displayEmotionAnalysis(emotions) {
                 const container = document.getElementById('emotionAnalysisContainer');
                 const list = document.getElementById('emotionList');
-                list.innerHTML = '';
-                if (!emotions || emotions.length === 0) {
+                list.innerHTML = ''; // Clear previous results
+
+                // Ensure emotions is an array
+                const emotionsArray = Array.isArray(emotions) ? emotions : [emotions];
+
+                if (!emotionsArray || emotionsArray.length === 0 || (emotionsArray.length === 1 && !emotionsArray[0].emotion)) {
                     list.innerHTML = `<p style="text-align:center; color: var(--text-secondary);">No specific emotions detected.</p>`;
-                } else {
-                    emotions.forEach(item => {
-                        const listItem = document.createElement('li');
-                        listItem.className = 'emotion-item';
-                        listItem.innerHTML = `<span class="emotion-label">${item.emotion}</span><div class="emotion-bar-container"><div class="emotion-bar" style="width: 0%;"></div></div><span>${item.score}%</span>`;
-                        list.appendChild(listItem);
-                        setTimeout(() => listItem.querySelector('.emotion-bar').style.width = `${item.score}%`, 100);
-                    });
+                    container.classList.add('visible');
+                    return;
                 }
+
+                emotionsArray.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'emotion-item';
+
+                    const label = document.createElement('span');
+                    label.className = 'emotion-label';
+                    label.textContent = item.emotion;
+
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'emotion-bar-container';
+
+                    const bar = document.createElement('div');
+                    bar.className = 'emotion-bar';
+                    
+                    const scoreLabel = document.createElement('span');
+                    scoreLabel.textContent = `${item.score}%`;
+                    scoreLabel.style.color = 'var(--text-secondary)';
+                    scoreLabel.style.fontSize = '0.9rem';
+
+
+                    barContainer.appendChild(bar);
+                    listItem.appendChild(label);
+                    listItem.appendChild(barContainer);
+                    listItem.appendChild(scoreLabel);
+                    list.appendChild(listItem);
+
+                    // Animate the bar width
+                    setTimeout(() => {
+                        bar.style.width = `${item.score}%`;
+                    }, 100);
+                });
+
                 container.classList.add('visible');
             }
+            
+            function setLoading(isLoading) {
+                const aiIcon = document.getElementById('aiIcon');
+                const aiSpinner = document.getElementById('aiSpinner');
+                const aiButtonText = document.getElementById('aiButtonText');
+                aiButton.disabled = isLoading;
+                if (isLoading) {
+                    aiIcon.style.display = 'none';
+                    aiSpinner.style.display = 'block';
+                    aiButtonText.textContent = 'Analyzing...';
+                } else {
+                    aiIcon.style.display = 'block';
+                    aiSpinner.style.display = 'none';
+                    aiButtonText.textContent = 'AI Mood Analysis';
+                }
+            }
 
+            async function getEmotionAnalysis(text) {
+                const token = localStorage.getItem('token');
+                const apiUrl = 'http://localhost:9091/api/ai/emotion-breakdown'; // Call backend endpoint
+
+                const payload = {
+                    content: text // Send only the content
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`API call failed: ${response.status}`);
+                
+                const responseText = await response.text();
+                try {
+                    return JSON.parse(responseText);
+                } catch (error) {
+                    console.error("AI Analysis Error - Raw text from server:", responseText);
+                    throw error;
+                }
+            }
+            
             async function getDailyQuote() {
+                const token = localStorage.getItem('token');
                 const quoteTextEl = document.getElementById('quote-text');
                 const quoteAuthorEl = document.getElementById('quote-author');
+                
                 try {
-                     const response = await fetchWithAuth('/api/ai/daily-quote', { method: 'POST' });
-                     if (!response.ok) throw new Error('Could not fetch quote.');
-                    const quoteData = await response.json();
-                    quoteTextEl.textContent = `"${quoteData.quote}"`;
-                    quoteAuthorEl.textContent = `- ${quoteData.author}`;
+                    const apiUrl = 'http://localhost:9091/api/ai/daily-quote'; // Call backend endpoint
+
+                    const response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) throw new Error(`API call failed: ${response.status}`);
+                    
+                    const responseText = await response.text();
+                    try {
+                        const quoteData = JSON.parse(responseText);
+                        quoteTextEl.textContent = `"${quoteData.quote}"`;
+                        quoteAuthorEl.textContent = `- ${quoteData.author}`;
+                    } catch (error) {
+                        console.error("Quote fetching error - Raw text from server:", responseText);
+                        throw error;
+                    }
                 } catch (error) {
+                    alert("Quote fetching error: " + error);
                     console.error("Quote fetching error:", error);
+                    // Fallback quote
                     quoteTextEl.textContent = '"The journey of a thousand miles begins with a single step."';
                     quoteAuthorEl.textContent = '- Lao Tzu';
                 }
             }
             
-            // --- INITIALIZE APP ---
             createChart();
             getDailyQuote();
         });

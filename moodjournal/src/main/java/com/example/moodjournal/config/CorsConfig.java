@@ -10,8 +10,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // Apply to all endpoints
-                // This is the corrected line:
-                .allowedOriginPatterns("http://localhost:9090") // Allow frontend running on this port
+                .allowedOrigins("http://localhost:3000", "http://127.0.0.1:3000") // Allow specific origins
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)

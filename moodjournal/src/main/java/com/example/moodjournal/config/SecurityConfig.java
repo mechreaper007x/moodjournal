@@ -44,7 +44,10 @@ public class SecurityConfig {
                     "/*.html", 
                     "/css/**", 
                     "/js/**", 
-                    "/api/auth/**"
+                    "/static/**",
+                    "/api/auth/register",
+                    "/api/auth/login",
+                    "/api/ai/daily-quote"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

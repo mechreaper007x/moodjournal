@@ -42,30 +42,6 @@ public class JournalEntryService {
         return entryRepo.save(entry);
     }
 
-    // Enhanced create method that accepts only the JournalEntry with AI analysis
-    public JournalEntry create(JournalEntry entry) {
-        if (entry.getUser() != null && entry.getUser().getId() != null) {
-            Long userId = entry.getUser().getId();
-            var optUser = userRepo.findById(userId);
-            if (optUser.isPresent()) { 
-                entry.setUser(optUser.get());
-            } else {
-                throw new NoSuchElementException("User not found with id: " + userId);
-            }
-        } else {
-            throw new IllegalArgumentException("User ID must be provided to create a journal entry.");
-        }
-
-
-        // Auto-detect mood if not provided
-        if (entry.getMood() == null) {
-            Mood detectedMood = sentimentService.analyzeSentiment(entry.getContent());
-            entry.setMood(detectedMood);
-        }
-
-        return entryRepo.save(entry);
-    }
-
     // Add method to get mood suggestions
     public Mood suggestMood(String content) {
         return sentimentService.analyzeSentiment(content);
@@ -94,16 +70,20 @@ public class JournalEntryService {
         return entryRepo.findByVisibility(Visibility.PUBLIC_ANON);
     }
 
-    public Optional<JournalEntry> getById(Long id) {
-        return entryRepo.findById(id);
+    public Optional<JournalEntry> getById(Long id, Long userId) {
+        return entryRepo.findById(id).map(entry -> {
+            if (!entry.getUser().getId().equals(userId)) {
+                throw new NoSuchElementException("JournalEntry not found");
+            }
+            return entry;
+        });
     }
 
-    public List<JournalEntry> getAll() {
-        return entryRepo.findAll();
-    }
-
-    public JournalEntry update(Long id, UpdateJournalEntryRequest updated) {
+    public JournalEntry update(Long id, Long userId, UpdateJournalEntryRequest updated) {
         return entryRepo.findById(id).map(e -> {
+            if (!e.getUser().getId().equals(userId)) {
+                throw new NoSuchElementException("JournalEntry not found");
+            }
             e.setTitle(updated.getTitle());
             e.setContent(updated.getContent());
 
@@ -145,7 +125,14 @@ public class JournalEntryService {
         }).orElseThrow(() -> new NoSuchElementException("JournalEntry not found"));
     }
 
-    public void delete(Long id) {
-        entryRepo.deleteById(id);
+    public void delete(Long id, Long userId) {
+        entryRepo.findById(id).ifPresentOrElse(entry -> {
+            if (!entry.getUser().getId().equals(userId)) {
+                throw new NoSuchElementException("JournalEntry not found");
+            }
+            entryRepo.deleteById(id);
+        }, () -> {
+            throw new NoSuchElementException("JournalEntry not found");
+        });
     }
 }

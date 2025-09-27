@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Mood Journal</title>
+    <title>Register - Mood Journal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -103,7 +103,6 @@
             cursor: pointer;
         }
         .toggle-link a:hover { text-decoration: underline; }
-        #register-form-container { display: none; }
         .notification {
             position: fixed;
             top: 20px;
@@ -122,27 +121,6 @@
 </head>
 <body>
     <div class="auth-container">
-        <!-- Login Form -->
-        <div id="login-form-container">
-            <div class="auth-header">
-                <h1>Welcome Back</h1>
-                <p>Login to continue your journey</p>
-            </div>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="login-email">Email</label>
-                    <input type="email" id="login-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Password</label>
-                    <input type="password" id="login-password" required>
-                </div>
-                <button type="submit" class="btn">Login</button>
-            </form>
-            <p class="toggle-link">Don't have an account? <a id="show-register">Register here</a></p>
-        </div>
-
-        <!-- Registration Form -->
         <div id="register-form-container">
             <div class="auth-header">
                 <h1>Create Account</h1>
@@ -163,12 +141,51 @@
                 </div>
                 <button type="submit" class="btn">Register</button>
             </form>
-            <p class="toggle-link">Already have an account? <a id="show-login">Login here</a></p>
+            <p class="toggle-link">Already have an account? <a href="/login.html">Login here</a></p>
         </div>
     </div>
     
     <div class="notification" id="notification"></div>
 
-    <script src="js/login.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const registerForm = document.getElementById('register-form');
+            const notificationEl = document.getElementById('notification');
+
+            function showNotification(message, isError = false) {
+                notificationEl.textContent = message;
+                notificationEl.style.background = isError ? 'linear-gradient(45deg, #f5576c, #f093fb)' : 'var(--primary-gradient)';
+                notificationEl.classList.add('show');
+                setTimeout(() => notificationEl.classList.remove('show'), 4000);
+            }
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('register-username').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+
+                try {
+                    const response = await fetch('http://localhost:9091/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password })
+                    });
+                    
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('userId', data.user.id);
+                        window.location.href = window.location.origin + '/index.html';
+                    } else {
+                        throw new Error(data.error || 'Registration failed.');
+                    }
+                } catch (error) {
+                    showNotification(error.message, true);
+                }
+            });
+        });
+    </script> 
 </body> 
 </html>

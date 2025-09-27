@@ -9,6 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +28,7 @@ import com.example.moodjournal.model.JournalEntry;
 import com.example.moodjournal.model.Mood;
 import com.example.moodjournal.model.Visibility;
 import com.example.moodjournal.service.JournalEntryService;
+import com.example.moodjournal.service.UserService;
 
 import jakarta.validation.Valid;
 
@@ -32,15 +36,23 @@ import jakarta.validation.Valid;
 @RequestMapping("/journal")
 public class JournalEntryController {
     private final JournalEntryService service;
+    private final UserService userService;
     private static final Logger log = LoggerFactory.getLogger(JournalEntryController.class);
-    public JournalEntryController(JournalEntryService service) { this.service = service; }
+    public JournalEntryController(JournalEntryService service, UserService userService) { 
+        this.service = service; 
+        this.userService = userService;
+    }
+
+    private Long getUserIdFromUserDetails(UserDetails userDetails) {
+        return userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new NoSuchElementException("User not found")).getId();
+    }
 
     // POST /journal - create using request body only (user may be omitted)
+    @CrossOrigin
     @PostMapping
-    public ResponseEntity<?> createEntry(@Valid @RequestBody CreateJournalEntryRequest req) {
-        if (req.getUserId() == null) { // Ensure userId is provided
-            return ResponseEntity.badRequest().body(Map.of("error", "userId must be provided"));
-        }
+    public ResponseEntity<?> createEntry(@Valid @RequestBody CreateJournalEntryRequest req, @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = getUserIdFromUserDetails(userDetails);
         JournalEntry entry = new JournalEntry();
         entry.setTitle(req.getTitle());
         entry.setContent(req.getContent());
@@ -54,10 +66,12 @@ public class JournalEntryController {
         }
         if (req.getVisibility() != null && !req.getVisibility().isBlank()) {
             entry.setVisibility(Visibility.valueOf(req.getVisibility().toUpperCase()));
+        } else {
+            entry.setVisibility(Visibility.PRIVATE);
         }
 
         try {
-            JournalEntry created = service.create(req.getUserId(), entry); // Assuming this method exists and handles mood detection
+            JournalEntry created = service.create(userId, entry); // Assuming this method exists and handles mood detection
             URI location = URI.create(String.format("/journal/%d", created.getId()));
             return ResponseEntity.status(HttpStatus.CREATED).location(location).body(created);
         } catch (NoSuchElementException e) {
@@ -66,7 +80,8 @@ public class JournalEntryController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<JournalEntry>> myEntries(@RequestParam Long userId){
+    public ResponseEntity<List<JournalEntry>> myEntries(@AuthenticationPrincipal UserDetails userDetails){
+        Long userId = getUserIdFromUserDetails(userDetails);
         return ResponseEntity.ok(service.getByUser(userId));
     }
 
@@ -76,17 +91,20 @@ public class JournalEntryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<JournalEntry> get(@PathVariable Long id){
-        return service.getById(id).map(ResponseEntity::ok)
+    public ResponseEntity<JournalEntry> get(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails){
+        Long userId = getUserIdFromUserDetails(userDetails);
+        return service.getById(id, userId).map(ResponseEntity::ok)
                .orElse(ResponseEntity.notFound().build());
     }
 
+    @CrossOrigin
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody UpdateJournalEntryRequest updated){
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody UpdateJournalEntryRequest updated, @AuthenticationPrincipal UserDetails userDetails){
         try {
+            Long userId = getUserIdFromUserDetails(userDetails);
             log.info("Update request for id={} payload={{}}", id, updated);
-            JournalEntry result = service.update(id, updated);
-            return ResponseEntity.ok(Map.of("id", result.getId(), "message", "updated"));
+            JournalEntry result = service.update(id, userId, updated);
+            return ResponseEntity.ok(result);
         } catch (NoSuchElementException e) {
             log.info("JournalEntry not found: id={}", id);
             return ResponseEntity.notFound().build();
@@ -100,14 +118,12 @@ public class JournalEntryController {
         }
     }
 
+    @CrossOrigin
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id){
-        service.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails){
+        Long userId = getUserIdFromUserDetails(userDetails);
+        service.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping
-    public ResponseEntity<List<JournalEntry>> getAllEntries(){
-        return ResponseEntity.ok(service.getAll());
-    }
 }
